@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: SysMind MCP
+
+llm:
+  url: "http://localhost:1234"
