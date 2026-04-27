@@ -1,8 +1,6 @@
-Here is the updated README content with the MIT License added:
-
 ```markdown
 # sysmind-mcp
-
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 This project, `sysmind-mcp`, is a microservice designed to manage interactions with Large Language Models (LLMs) within the sysmind ecosystem. It provides robust functionalities for sending prompts and receiving conversational responses from external LLM APIs.
 
 ## ✨ Features
@@ -66,5 +64,5 @@ Contributions are welcome! If you find bugs or have ideas for improvements, plea
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE.md) file for details.
 ```
