@@ -1,3 +1,6 @@
+Here is the updated README content with the MIT License added:
+
+```markdown
 # sysmind-mcp
 
 This project, `sysmind-mcp`, is a microservice designed to manage interactions with Large Language Models (LLMs) within the sysmind ecosystem. It provides robust functionalities for sending prompts and receiving conversational responses from external LLM APIs.
@@ -21,7 +24,7 @@ You must have Java Development Kit (JDK) 21 or newer installed, as this project 
 1.  **Clone the Repository:**
 ```shell script
 git clone <repository-url>
-    cd sysmind-mcp
+cd sysmind-mcp
 ```
 
 
@@ -30,7 +33,7 @@ git clone <repository-url>
 ```shell script
 ./mvnw spring-boot:run
     # or on Windows:
-    .\mvnw.cmd spring-boot:run
+.\mvnw.cmd spring-boot:run
 ```
 
 
@@ -63,4 +66,5 @@ Contributions are welcome! If you find bugs or have ideas for improvements, plea
 
 ## 📄 License
 
-This project is licensed under [Specify License Here].
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+```
