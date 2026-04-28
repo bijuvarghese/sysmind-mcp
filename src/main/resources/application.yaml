@@ -3,4 +3,4 @@ spring:
     name: SysMind MCP
 
 llm:
-  url: "http://localhost:1234"
+  url: "${LLM_URL:http://localhost:1234}"

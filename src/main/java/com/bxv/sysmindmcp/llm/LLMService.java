@@ -1,7 +1,7 @@
 package com.bxv.sysmindmcp.llm;
 
 import com.bxv.sysmindmcp.config.AppConfig;
-import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -9,17 +9,22 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 import java.util.Map;
 
-@AllArgsConstructor
 @Service
 public class LLMService {
-    // private AppConfig appConfig;
-    private final WebClient client = WebClient.create("http://127.0.0.1:1234");
+    private final WebClient client;
+    private final String model;
+
+    public LLMService(AppConfig appConfig,
+                      @Value("${llm.model:google/gemma-4-e4b}") String model) {
+        this.client = WebClient.create(appConfig.getLLMUrl());
+        this.model = model;
+    }
 
     public Mono<String> ask(String prompt) {
         return client.post()
                 .uri("/v1/chat/completions")
                 .bodyValue(Map.of(
-                        "model", "gemma-4b",
+                        "model", model,
                         "messages", List.of(
                                 Map.of("role", "user", "content", prompt)
                         )
