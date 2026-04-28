@@ -1,6 +1,7 @@
 package com.bxv.sysmindmcp.llm;
 
 import com.bxv.sysmindmcp.config.AppConfig;
+import com.bxv.sysmindmcp.model.ModelListResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -11,25 +12,32 @@ import java.util.Map;
 
 @Service
 public class LLMService {
-    private final WebClient client;
-    private final String model;
+        private final WebClient client;
+        private final String model;
 
-    public LLMService(AppConfig appConfig,
-                      @Value("${llm.model:google/gemma-4-e4b}") String model) {
-        this.client = WebClient.create(appConfig.getLLMUrl());
-        this.model = model;
-    }
+        public LLMService(AppConfig appConfig,
+                        @Value("${llm.model:google/gemma-4-e4b}") String model) {
+                this.client = WebClient.create(appConfig.getLLMUrl());
+                this.model = model;
+        }
 
-    public Mono<String> ask(String prompt) {
-        return client.post()
-                .uri("/v1/chat/completions")
-                .bodyValue(Map.of(
-                        "model", model,
-                        "messages", List.of(
-                                Map.of("role", "user", "content", prompt)
-                        )
-                ))
-                .retrieve()
-                .bodyToMono(String.class);
-    }
+        public Mono<String> ask(String prompt) {
+                return client.post()
+                                .uri("/v1/chat/completions")
+                                .bodyValue(Map.of(
+                                                "model", model,
+                                                "messages", List.of(
+                                                                Map.of("role", "user", "content", prompt))))
+                                .retrieve()
+                                .bodyToMono(String.class);
+        }
+
+        public Mono<ModelListResponse> models() {
+                var response = client.get()
+                                .uri("/v1/models")
+                                .retrieve()
+                                .bodyToMono(ModelListResponse.class);
+                System.out.println(response);
+                return response;
+        }
 }
