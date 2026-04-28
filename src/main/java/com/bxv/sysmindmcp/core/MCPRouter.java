@@ -4,6 +4,7 @@ import com.bxv.sysmindmcp.llm.LLMService;
 import com.bxv.sysmindmcp.tools.SystemTool;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 @Service
 @AllArgsConstructor
@@ -11,7 +12,7 @@ public class MCPRouter {
     private final ToolRegistry registry;
     private final LLMService llm;
 
-    public String handle(String prompt) {
+    public Mono<String> handle(String prompt) {
         String tools = buildToolsList();
         String decisionPrompt =
                 "You are a system agent.\n\n" +
@@ -20,20 +21,21 @@ public class MCPRouter {
                         "\nReturn JSON only like:\n" +
                         "{ \"tool\": \"...\" }\n\n" +
                         "User request:\n" + prompt;
-        String response = llm.ask(prompt);
-        String toolName = extractTool(response);
-        SystemTool tool = registry.getTool(toolName);
-        Object result = tool != null ? tool.execute() : "no tool found";
-
-        String finalPrompt =
-                "Explain this system data clearly:\n" +
-                        "Tool: " + toolName + "\n" +
-                        "Result: " + result;
-
-        return llm.ask(finalPrompt);
+        return llm.ask(prompt)
+                .map(this::extractTool)
+                .flatMap(tool ->
+                        Mono.fromCallable(() -> registry.getTool(tool).execute())
+                                .map(result -> formatPrompt(tool, result))
+                )
+                .flatMap(llm::ask);
 
     }
 
+    private String formatPrompt(String tool, Object result) {
+        return "Explain this system data clearly:\n" +
+                "Tool: " + tool + "\n" +
+                "Result: " + result;
+    }
     private String buildToolsList() {
         StringBuilder sb = new StringBuilder();
         registry.getTools().forEach(tool -> {

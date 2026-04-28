@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
@@ -17,7 +18,7 @@ public class AgentController {
     private final MCPRouter router;
 
     @PostMapping
-    public String run(@RequestBody Map<String, String> body) {
+    public Mono<String> run(@RequestBody Map<String, String> body) {
         return router.handle(body.get("prompt"));
     }
 

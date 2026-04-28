@@ -4,6 +4,7 @@ import com.bxv.sysmindmcp.config.AppConfig;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
@@ -14,7 +15,7 @@ public class LLMService {
     // private AppConfig appConfig;
     private final WebClient client = WebClient.create("http://127.0.0.1:1234");
 
-    public String ask(String prompt) {
+    public Mono<String> ask(String prompt) {
         return client.post()
                 .uri("/v1/chat/completions")
                 .bodyValue(Map.of(
@@ -24,7 +25,6 @@ public class LLMService {
                         )
                 ))
                 .retrieve()
-                .bodyToMono(String.class)
-                .block();
+                .bodyToMono(String.class);
     }
 }

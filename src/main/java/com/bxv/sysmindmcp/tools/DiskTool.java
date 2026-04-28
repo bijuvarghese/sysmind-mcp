@@ -3,14 +3,12 @@ package com.bxv.sysmindmcp.tools;
 import com.bxv.sysmindmcp.model.DiskStats;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
-import org.springframework.web.servlet.View;
 
 import java.nio.file.*;
 
 @Component
 @AllArgsConstructor
 public class DiskTool implements SystemTool {
-    private final View error;
 
     @Override
     public String name() {
