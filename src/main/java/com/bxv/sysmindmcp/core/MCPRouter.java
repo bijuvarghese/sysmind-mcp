@@ -12,7 +12,7 @@ public class MCPRouter {
     private final ToolRegistry registry;
     private final LLMService llm;
 
-    public Mono<String> handle(String prompt) {
+    public Mono<String> handle(String prompt, String model) {
         String tools = buildToolsList();
         String decisionPrompt =
                 "You are a system agent.\n\n" +
@@ -21,13 +21,13 @@ public class MCPRouter {
                         "\nReturn JSON only like:\n" +
                         "{ \"tool\": \"...\" }\n\n" +
                         "User request:\n" + prompt;
-        return llm.ask(prompt)
+        return llm.ask(prompt, model)
                 .map(this::extractTool)
                 .flatMap(tool ->
                         Mono.fromCallable(() -> registry.getTool(tool).execute())
                                 .map(result -> formatPrompt(tool, result))
                 )
-                .flatMap(llm::ask);
+                .flatMap(formattedPrompt -> llm.ask(formattedPrompt, model));
 
     }
 

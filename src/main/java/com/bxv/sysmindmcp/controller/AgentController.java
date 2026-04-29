@@ -23,7 +23,7 @@ public class AgentController {
 
     @PostMapping("/agent")
     public Mono<String> run(@RequestBody Map<String, String> body) {
-        return router.handle(body.get("prompt"));
+        return router.handle(body.get("prompt"), body.get("model"));
     }
 
     @GetMapping(value = "/v1/models", produces = MediaType.APPLICATION_JSON_VALUE)

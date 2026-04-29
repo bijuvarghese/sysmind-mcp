@@ -21,11 +21,12 @@ public class LLMService {
                 this.model = model;
         }
 
-        public Mono<String> ask(String prompt) {
+        public Mono<String> ask(String prompt, String requestedModel) {
+                String targetModel = (requestedModel != null && !requestedModel.trim().isEmpty()) ? requestedModel : this.model;
                 return client.post()
                                 .uri("/v1/chat/completions")
                                 .bodyValue(Map.of(
-                                                "model", model,
+                                                "model", targetModel,
                                                 "messages", List.of(
                                                                 Map.of("role", "user", "content", prompt))))
                                 .retrieve()
