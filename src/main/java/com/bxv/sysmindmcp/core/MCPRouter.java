@@ -1,7 +1,6 @@
 package com.bxv.sysmindmcp.core;
 
 import com.bxv.sysmindmcp.llm.LLMService;
-import com.bxv.sysmindmcp.tools.SystemTool;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -14,19 +13,16 @@ public class MCPRouter {
 
     public Mono<String> handle(String prompt, String model) {
         String tools = buildToolsList();
-        String decisionPrompt =
-                "You are a system agent.\n\n" +
-                        "Choose ONE tool:\n" +
-                        tools +
-                        "\nReturn JSON only like:\n" +
-                        "{ \"tool\": \"...\" }\n\n" +
-                        "User request:\n" + prompt;
-        return llm.ask(prompt, model)
+        String decisionPrompt = "You are a system agent.\n\n" +
+                "Choose ONE tool:\n" +
+                tools +
+                "\nReturn JSON only like:\n" +
+                "{ \"tool\": \"...\" }\n\n" +
+                "User request:\n" + prompt;
+        return llm.ask(decisionPrompt, model)
                 .map(this::extractTool)
-                .flatMap(tool ->
-                        Mono.fromCallable(() -> registry.getTool(tool).execute())
-                                .map(result -> formatPrompt(tool, result))
-                )
+                .flatMap(tool -> Mono.fromCallable(() -> registry.getTool(tool).execute())
+                        .map(result -> formatPrompt(tool, result)))
                 .flatMap(formattedPrompt -> llm.ask(formattedPrompt, model));
 
     }
@@ -36,6 +32,7 @@ public class MCPRouter {
                 "Tool: " + tool + "\n" +
                 "Result: " + result;
     }
+
     private String buildToolsList() {
         StringBuilder sb = new StringBuilder();
         registry.getTools().forEach(tool -> {
@@ -56,8 +53,8 @@ public class MCPRouter {
 
             return json.contains("disk") ? "disk_usage"
                     : json.contains("memory") ? "memory_usage"
-                      : json.contains("cpu") ? "cpu_usage"
-                        : "disk_usage";
+                            : json.contains("cpu") ? "cpu_usage"
+                                    : "disk_usage";
 
         } catch (Exception e) {
             return "disk_usage";
