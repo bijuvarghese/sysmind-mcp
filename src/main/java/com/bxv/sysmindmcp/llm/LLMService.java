@@ -34,11 +34,12 @@ public class LLMService {
         }
 
         public Mono<ModelListResponse> models() {
-                var response = client.get()
+
+                return client.get()
                                 .uri("/v1/models")
                                 .retrieve()
                                 .bodyToMono(ModelListResponse.class);
-                System.out.println(response);
-                return response;
+
+
         }
 }
