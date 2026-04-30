@@ -4,3 +4,4 @@ spring:
 
 llm:
   url: "${LLM_URL:http://localhost:1234}"
+  timeout: "${LLM_TIMEOUT:30s}"

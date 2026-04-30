@@ -58,6 +58,24 @@ class MCPRouterTest {
     }
 
     @Test
+    void handleAsksLlmWithoutToolDataWhenToolDecisionCannotBeParsed() {
+        LLMService llm = mock(LLMService.class);
+        SystemTool diskTool = tool("disk_usage", "Return disk usage", "disk-result");
+        MCPRouter router = new MCPRouter(new ToolRegistry(List.of(diskTool)), llm);
+
+        when(llm.ask(org.mockito.ArgumentMatchers.contains("Choose ONE tool"), eq(null)))
+                .thenReturn(Mono.just("not-json"));
+        when(llm.ask("Explain the system status", null))
+                .thenReturn(Mono.just("Direct LLM response."));
+
+        StepVerifier.create(router.handle("Explain the system status", null))
+                .expectNext("Direct LLM response.")
+                .verifyComplete();
+
+        verify(llm).ask("Explain the system status", null);
+    }
+
+    @Test
     void registryFindsRegisteredToolsByName() {
         SystemTool ramTool = tool("ram_usage", "Return RAM usage", "ram-result");
         ToolRegistry registry = new ToolRegistry(List.of(ramTool));
