@@ -1,7 +1,9 @@
 spring:
+  config:
+    import: "optional:file:.env[.properties],optional:file:../.env[.properties]"
   application:
     name: SysMind MCP
 
 llm:
-  url: "${LLM_URL:http://localhost:1234}"
-  timeout: "${LLM_TIMEOUT:30s}"
+  url: "${LLM_URL}"
+  timeout: "${LLM_TIMEOUT}"
