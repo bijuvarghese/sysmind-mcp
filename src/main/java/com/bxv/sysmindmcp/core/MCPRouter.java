@@ -28,7 +28,7 @@ public class MCPRouter {
                 "{\"tool\":\"tool_name\"}\n\n" +
                 "User request:\n" + prompt;
 
-        System.out.println("User Prompt: " + prompt);
+        System.out.println("User Prompt: " + decisionPrompt);
 
         return llm.ask(decisionPrompt, model)
                 .map(this::extractTool)
