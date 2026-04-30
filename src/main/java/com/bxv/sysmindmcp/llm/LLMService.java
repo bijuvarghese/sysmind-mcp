@@ -29,9 +29,8 @@ public class LLMService {
 
         @Autowired
         public LLMService(AppConfig appConfig,
-                        @Value("${llm.model:google/gemma-4-e4b}") String model,
-                        @Value("${llm.timeout:30s}") Duration timeout) {
-                this(WebClient.builder().baseUrl(appConfig.getLLMUrl()).build(), model, timeout);
+                        @Value("${llm.model:google/gemma-4-e4b}") String model) {
+                this(WebClient.builder().baseUrl(appConfig.getUrl()).build(), model, appConfig.getTimeout());
         }
 
         LLMService(WebClient client, String model, Duration timeout) {
