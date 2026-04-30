@@ -1,5 +1,5 @@
 # Build stage
-FROM eclipse-temurin:21-jdk AS builder
+FROM eclipse-temurin:25-jdk AS builder
 WORKDIR /app
 
 # Copy the Maven wrapper and pom.xml
@@ -16,7 +16,7 @@ COPY src src
 RUN ./mvnw clean package -DskipTests
 
 # Run stage
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 WORKDIR /app
 COPY --from=builder /app/target/sysmind-mcp.jar app.jar
 
