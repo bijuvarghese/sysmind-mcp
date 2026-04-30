@@ -26,7 +26,7 @@ class MCPRouterTest {
         String decisionResponse = """
                 {"choices":[{"message":{"content":"{\\"tool\\":\\"ram_usage\\"}"}}]}
                 """;
-        when(llm.ask(org.mockito.ArgumentMatchers.contains("Choose ONE tool"), eq("model-a")))
+        when(llm.ask(org.mockito.ArgumentMatchers.contains("Choose the best matching tool"), eq("model-a")))
                 .thenReturn(Mono.just(decisionResponse));
         when(llm.ask(org.mockito.ArgumentMatchers.contains("Tool: ram_usage"), eq("model-a")))
                 .thenReturn(Mono.just("RAM usage is healthy."));
@@ -45,7 +45,7 @@ class MCPRouterTest {
         SystemTool diskTool = tool("disk_usage", "Return disk usage", "disk-result");
         MCPRouter router = new MCPRouter(new ToolRegistry(List.of(diskTool)), llm);
 
-        when(llm.ask(org.mockito.ArgumentMatchers.contains("Choose ONE tool"), eq(null)))
+        when(llm.ask(org.mockito.ArgumentMatchers.contains("Choose the best matching tool"), eq(null)))
                 .thenReturn(Mono.just("{\"tool\":\"not_registered\"}"));
         when(llm.ask("Check something unsupported", null))
                 .thenReturn(Mono.just("Direct LLM response."));
@@ -63,7 +63,7 @@ class MCPRouterTest {
         SystemTool diskTool = tool("disk_usage", "Return disk usage", "disk-result");
         MCPRouter router = new MCPRouter(new ToolRegistry(List.of(diskTool)), llm);
 
-        when(llm.ask(org.mockito.ArgumentMatchers.contains("Choose ONE tool"), eq(null)))
+        when(llm.ask(org.mockito.ArgumentMatchers.contains("Choose the best matching tool"), eq(null)))
                 .thenReturn(Mono.just("not-json"));
         when(llm.ask("Explain the system status", null))
                 .thenReturn(Mono.just("Direct LLM response."));
@@ -73,6 +73,24 @@ class MCPRouterTest {
                 .verifyComplete();
 
         verify(llm).ask("Explain the system status", null);
+    }
+
+    @Test
+    void handleAsksLlmWithoutToolDataWhenNoToolApplies() {
+        LLMService llm = mock(LLMService.class);
+        SystemTool diskTool = tool("disk_usage", "Return disk usage", "disk-result");
+        MCPRouter router = new MCPRouter(new ToolRegistry(List.of(diskTool)), llm);
+
+        when(llm.ask(org.mockito.ArgumentMatchers.contains("If no tool applies"), eq(null)))
+                .thenReturn(Mono.just("{\"tool\":\"none\"}"));
+        when(llm.ask("Tell me a joke", null))
+                .thenReturn(Mono.just("Direct LLM response."));
+
+        StepVerifier.create(router.handle("Tell me a joke", null))
+                .expectNext("Direct LLM response.")
+                .verifyComplete();
+
+        verify(llm).ask("Tell me a joke", null);
     }
 
     @Test

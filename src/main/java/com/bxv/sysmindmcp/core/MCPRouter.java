@@ -25,15 +25,18 @@ public class MCPRouter {
         String tools = buildToolsList();
 
         String decisionPrompt = "You are a system agent.\n\n" +
-                "Choose ONE tool from the list below:\n" +
+                "Choose the best matching tool from the list below only when the user asks for data that tool provides.\n"
+                +
+                "If no tool applies, return {\"tool\":\"none\"}.\n" +
                 tools +
                 "\nReturn ONLY valid JSON. No explanation. No extra text.\n" +
                 "Format:\n" +
-                "{\"tool\":\"tool_name\"}\n\n" +
+                "{\"tool\":\"tool_name_or_none\"}\n\n" +
                 "User request:\n" + prompt;
 
         int promptLength = prompt == null ? 0 : prompt.length();
-        log.debug("Requesting tool decision. availableTools={}, promptLength={}", registry.getTools().size(), promptLength);
+        log.debug("Requesting tool decision. availableTools={}, promptLength={}", registry.getTools().size(),
+                promptLength);
 
         return llm.ask(decisionPrompt, model)
                 .map(this::extractTool)
@@ -107,6 +110,10 @@ public class MCPRouter {
 
             if (node.has("tool")) {
                 String tool = node.get("tool").asText();
+                if ("none".equalsIgnoreCase(tool)) {
+                    return NO_TOOL;
+                }
+
                 log.debug("Extracted tool from LLM response. tool={}", tool);
                 return tool;
             }
@@ -114,7 +121,8 @@ public class MCPRouter {
             return NO_TOOL;
 
         } catch (Exception e) {
-            log.warn("Unable to parse tool decision from LLM response. Falling back to no-tool path. reason={}", e.getMessage());
+            log.warn("Unable to parse tool decision from LLM response. Falling back to no-tool path. reason={}",
+                    e.getMessage());
             return NO_TOOL;
         }
     }
