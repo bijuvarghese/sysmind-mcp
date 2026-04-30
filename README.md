@@ -1,78 +1,90 @@
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-```markdown
 # sysmind-mcp
-This project, `sysmind-mcp`, is a microservice designed to manage interactions with Large Language Models (LLMs) within
-the sysmind ecosystem. It provides robust functionalities for sending prompts and receiving conversational responses 
-from external LLM APIs.
 
-## ✨ Features
+Spring Boot 4 backend for SysMind. It receives chat prompts, asks an OpenAI-compatible LLM to choose an applicable system tool, executes that tool when appropriate, and sends the result back through the LLM for a readable response.
 
-*   **LLM Integration:** Seamlessly integrates with external generative AI services using `WebClient`.
-*   **Chat Completion Support:** Supports standard chat completion endpoints (`/v1/chat/completions`).
-*   **Modular Design:** Built on a modern Java stack (Spring Boot) for scalability and maintainability.
+## Endpoints
 
-## 🚀 Getting Started
+- `POST /agent`
+  - Body: `{"prompt":"...","model":"optional-model-id"}`
+  - `prompt` is required and validated.
+- `GET /v1/models`
+  - Proxies the configured LLM model list.
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing 
-purposes.
+## Tools
 
-### Prerequisites
+Registered system tools:
 
-You must have Java Development Kit (JDK) 21 or newer installed, as this project utilizes modern Java features.
-You also need Apache Maven (`mvnw`) or Gradle to manage dependencies.
+- `disk_usage`: returns disk free, used, and total values.
+- `ram_usage`: returns memory free, used, and total values.
 
-### Installation
+If no tool applies, or the LLM returns an invalid/unparseable tool decision, the backend asks the LLM directly without injecting tool data.
 
-1.  **Clone the Repository:**
-```shell script
-git clone <repository-url>
-cd sysmind-mcp
+## Configuration
+
+`application.yaml` intentionally does not include default values for LLM connection settings. Provide them through environment variables or an imported `.env` file:
+
+```env
+LLM_URL=http://localhost:1234
+LLM_TIMEOUT=3m
 ```
 
+For Docker from the repository root, use:
 
-2.  **Build and Run (Using Maven Wrapper):**
-    Execute the following command in the project root directory to download dependencies, compile the code, and start 
-    the application:
-```shell script
+```env
+LLM_URL=http://host.docker.internal:1234
+LLM_TIMEOUT=3m
+```
+
+Spring imports optional env files from:
+
+- `sysmind-mcp/.env`
+- repository root `.env`
+
+The `llm.*` settings are bound through `AppConfig` with `@ConfigurationProperties`, so IDE tooling can recognize `llm.url` and `llm.timeout`.
+
+## Development
+
+Run locally:
+
+```bash
 ./mvnw spring-boot:run
-    # or on Windows:
-.\mvnw.cmd spring-boot:run
 ```
 
+Run tests:
 
-## ⚙️ Configuration
+```bash
+./mvnw test
+```
 
-The service is configured to connect to a specific LLM endpoint by default. You may need to adjust this configuration 
-depending on your deployment environment.
+Build the jar:
 
-Currently, the `LLMService` targets an internal host for the LLM API:
+```bash
+./mvnw clean package
+```
 
-*   **Base URL:** `http://127.0.0.1:1234`
-*   **Default Model:** `gemma-4b`
+## Error Handling
 
-### Environment Variables / Configuration Files
+LLM calls use the configured timeout.
 
-For production environments, update your configuration (`application.properties` or environment variables) to point to 
-the correct LLM provider URL and model name.
+- Timeout: `504 Gateway Timeout`
+- Upstream request/status failure: `502 Bad Gateway`
+- Invalid `/agent` request body: `400 Bad Request`
 
-## 🛠️ Usage Example (Conceptual)
+Logs use SLF4J and avoid printing full prompts by default.
 
-The core functionality is exposed via the `LLMService`. Developers can call the `ask(String prompt)` method to retrieve 
-a response from the configured LLM endpoint.
+## Docker
 
-**Example Interaction:**
+The root Compose stack builds this service and injects:
 
-If you were using this service in another part of your application, calling:
-`llmService.ask("What is quantum computing?")`
-...would send the request to the remote LLM and return the generated text as a string.
+```env
+LLM_URL
+LLM_TIMEOUT
+SPRING_PROFILES_ACTIVE
+```
 
-## 🤝 Contributing
+Use root scripts for day-to-day Docker workflow:
 
-Contributions are welcome! If you find bugs or have ideas for improvements, please open an issue or submit a pull 
-request.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](./LICENSE.md) file for details.
-
+```bash
+../deploy.sh
+../shutdown.sh
 ```

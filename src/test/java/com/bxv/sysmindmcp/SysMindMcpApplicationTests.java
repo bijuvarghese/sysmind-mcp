@@ -5,7 +5,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest(properties = {
         "LLM_URL=http://localhost:1234",
-        "LLM_TIMEOUT=30s"
+        "LLM_TIMEOUT=3m"
 })
 class SysMindMcpApplicationTests {
 
