@@ -14,9 +14,14 @@ public class ToolRegistry {
     private final List<SystemTool> tools;
 
     public SystemTool getTool(String name) {
+        System.out.println("ToolRegistry.getTool: " + name);
         return tools.stream()
                 .filter(t -> t.name().equals(name))
                 .findFirst()
                 .orElse(null);
+    }
+
+    public boolean hasTool(String name) {
+        return tools.stream().anyMatch(t -> t.name().equals(name));
     }
 }
