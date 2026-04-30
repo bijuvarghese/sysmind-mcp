@@ -40,21 +40,21 @@ class MCPRouterTest {
     }
 
     @Test
-    void handleFallsBackToDiskUsageWhenSelectedToolIsUnknown() {
+    void handleAsksLlmWithoutToolDataWhenSelectedToolIsUnknown() {
         LLMService llm = mock(LLMService.class);
         SystemTool diskTool = tool("disk_usage", "Return disk usage", "disk-result");
         MCPRouter router = new MCPRouter(new ToolRegistry(List.of(diskTool)), llm);
 
         when(llm.ask(org.mockito.ArgumentMatchers.contains("Choose ONE tool"), eq(null)))
                 .thenReturn(Mono.just("{\"tool\":\"not_registered\"}"));
-        when(llm.ask(org.mockito.ArgumentMatchers.contains("Tool: disk_usage"), eq(null)))
-                .thenReturn(Mono.just("Disk fallback response."));
+        when(llm.ask("Check something unsupported", null))
+                .thenReturn(Mono.just("Direct LLM response."));
 
         StepVerifier.create(router.handle("Check something unsupported", null))
-                .expectNext("Disk fallback response.")
+                .expectNext("Direct LLM response.")
                 .verifyComplete();
 
-        verify(llm).ask(org.mockito.ArgumentMatchers.contains("Result: disk-result"), eq(null));
+        verify(llm).ask("Check something unsupported", null);
     }
 
     @Test

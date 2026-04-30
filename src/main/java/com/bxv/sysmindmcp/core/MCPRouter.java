@@ -32,22 +32,23 @@ public class MCPRouter {
 
         return llm.ask(decisionPrompt, model)
                 .map(this::extractTool)
-                .flatMap(this::executeToolSafely)
+                .flatMap(tool -> executeToolOrFallback(tool, prompt, model));
+    }
+
+    private Mono<String> executeToolOrFallback(String tool, String prompt, String model) {
+        if (!registry.hasTool(tool)) {
+            System.out.println("Invalid tool from LLM: " + tool + ", asking LLM without tool data");
+            return llm.ask(prompt, model);
+        }
+
+        return executeTool(tool)
                 .flatMap(formattedPrompt -> llm.ask(formattedPrompt, model));
     }
 
-    private Mono<String> executeToolSafely(String tool) {
-        // Fallback if tool doesn't exist
-        if (!registry.hasTool(tool)) {
-            System.out.println("Invalid tool from LLM: " + tool + ", falling back to disk_usage");
-            tool = "disk_usage";
-        }
-
-        String finalTool = tool;
-
-        return Mono.fromCallable(() -> registry.getTool(finalTool).execute())
+    private Mono<String> executeTool(String tool) {
+        return Mono.fromCallable(() -> registry.getTool(tool).execute())
                 .subscribeOn(Schedulers.boundedElastic()) // prevent blocking main thread
-                .map(result -> formatPrompt(finalTool, result));
+                .map(result -> formatPrompt(tool, result));
     }
 
     private String formatPrompt(String tool, Object result) {
