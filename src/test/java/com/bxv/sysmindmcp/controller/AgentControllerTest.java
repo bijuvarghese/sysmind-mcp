@@ -13,6 +13,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,6 +38,42 @@ class AgentControllerTest {
                 .expectBody(String.class).isEqualTo("agent response");
 
         verify(router).handle(eq("status please"), eq("model-a"));
+    }
+
+    @Test
+    void agentEndpointReturnsBadRequestWhenPromptIsMissing() {
+        MCPRouter router = mock(MCPRouter.class);
+        LLMService llmService = mock(LLMService.class);
+        WebTestClient client = WebTestClient.bindToController(new AgentController(router, llmService)).build();
+
+        client.post()
+                .uri("/agent")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("""
+                        {"model":"model-a"}
+                        """)
+                .exchange()
+                .expectStatus().isBadRequest();
+
+        verify(router, never()).handle(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void agentEndpointReturnsBadRequestWhenPromptIsBlank() {
+        MCPRouter router = mock(MCPRouter.class);
+        LLMService llmService = mock(LLMService.class);
+        WebTestClient client = WebTestClient.bindToController(new AgentController(router, llmService)).build();
+
+        client.post()
+                .uri("/agent")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("""
+                        {"prompt":"   ","model":"model-a"}
+                        """)
+                .exchange()
+                .expectStatus().isBadRequest();
+
+        verify(router, never()).handle(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 
     @Test
