@@ -10,5 +10,8 @@ llm:
   chat-completions-path: "${LLM_CHAT_COMPLETIONS_PATH}"
 
 news:
-  feed-url: "${NEWS_FEED_URL}"
-  location-feed-url-template: "${NEWS_LOCATION_FEED_URL_TEMPLATE}"
+  feed-url: "${NEWS_FEED_URL:https://news.google.com/rss?hl={language}&gl={country}&ceid={ceid}}"
+  location-feed-url-template: "${NEWS_LOCATION_FEED_URL_TEMPLATE:https://news.google.com/rss/search?q={query}&hl={language}&gl={country}&ceid={ceid}}"
+  language: "${NEWS_LANGUAGE:en-US}"
+  country: "${NEWS_COUNTRY:US}"
+  ceid: "${NEWS_CEID:}"

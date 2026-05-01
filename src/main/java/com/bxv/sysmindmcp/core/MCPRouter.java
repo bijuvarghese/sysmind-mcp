@@ -2,6 +2,8 @@ package com.bxv.sysmindmcp.core;
 
 import com.bxv.sysmindmcp.llm.LLMService;
 import com.bxv.sysmindmcp.model.LLMResponse;
+import com.bxv.sysmindmcp.model.NewsArticle;
+import com.bxv.sysmindmcp.model.NewsResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
@@ -11,6 +13,9 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,11 +34,16 @@ public class MCPRouter {
                 You are a system agent.
 
                 Choose the best matching tool from the list below only when the user asks for data that tool provides.
-                If no tool applies, return {"tool":"none"}.
+                If no tool applies, return {"tool":"none","arguments":{}}.
+                For latest_news, infer URL arguments from the user request:
+                - query: concise Google News search query, without URL encoding
+                - language: result language/locale like en-US, fr-CA, hi-IN
+                - country: country focus like US, CA, IN
+                - ceid: country and language code like US:en, CA:fr, IN:hi
                 %s
                 Return ONLY valid JSON. No explanation. No extra text.
                 Format:
-                {"tool":"tool_name_or_none"}
+                {"tool":"tool_name_or_none","arguments":{}}
 
                 User request:
                 %s""".formatted(buildToolsList(), prompt);
@@ -43,27 +53,27 @@ public class MCPRouter {
                 promptLength);
 
         return llm.ask(decisionPrompt, model)
-                .map(response -> extractTool(response.firstMessageContent()))
-                .flatMap(tool -> executeToolOrFallback(tool, prompt, model));
+                .map(response -> extractToolDecision(response.firstMessageContent()))
+                .flatMap(decision -> executeToolOrFallback(decision, prompt, model));
     }
 
-    private Mono<LLMResponse> executeToolOrFallback(String tool, String prompt, String model) {
-        if (NO_TOOL.equals(tool)) {
+    private Mono<LLMResponse> executeToolOrFallback(ToolDecision decision, String prompt, String model) {
+        if (NO_TOOL.equals(decision.tool())) {
             log.warn("LLM tool decision was unavailable. Asking LLM without tool data.");
             return llm.ask(prompt, model);
         }
 
-        if (!registry.hasTool(tool)) {
-            log.warn("LLM selected unavailable tool '{}'. Asking LLM without tool data.", tool);
+        if (!registry.hasTool(decision.tool())) {
+            log.warn("LLM selected unavailable tool '{}'. Asking LLM without tool data.", decision.tool());
             return llm.ask(prompt, model);
         }
 
-        return executeTool(tool, prompt)
+        return executeTool(decision, prompt)
                 .flatMap(formattedPrompt -> llm.ask(formattedPrompt, model));
     }
 
-    private Mono<String> executeTool(String tool, String prompt) {
-        return Mono.fromCallable(() -> registry.getTool(tool).execute(prompt))
+    private Mono<String> executeTool(ToolDecision decision, String prompt) {
+        return Mono.fromCallable(() -> registry.getTool(decision.tool()).execute(prompt, decision.arguments()))
                 .subscribeOn(Schedulers.boundedElastic()) // prevent blocking main thread
                 .map(result -> formatPrompt(prompt, result));
     }
@@ -73,14 +83,58 @@ public class MCPRouter {
 
         return """
                 Answer the user in plain language using the available information.
-                Keep it concise and avoid implementation details.
+                Keep it concise. Use at most 5 bullet points.
+                Do not include reasoning, chain-of-thought, XML, URLs, or implementation details.
+                Return only the final answer.
 
                 User request:
                 %s
 
                 Available information:
                 %s"""
-                .formatted(prompt, result);
+                .formatted(prompt, formatToolResult(result));
+    }
+
+    private String formatToolResult(Object result) {
+        if (result instanceof NewsResult newsResult) {
+            return formatNewsResult(newsResult);
+        }
+
+        return String.valueOf(result);
+    }
+
+    private String formatNewsResult(NewsResult newsResult) {
+        if (newsResult.getError() != null && !newsResult.getError().isBlank()) {
+            return "News lookup failed: " + newsResult.getError();
+        }
+
+        if (newsResult.getArticles() == null || newsResult.getArticles().isEmpty()) {
+            return "No news articles were found.";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Fetched at: ").append(newsResult.getFetchedAt()).append("\n");
+        sb.append("Headlines:\n");
+
+        newsResult.getArticles().stream()
+                .limit(5)
+                .forEach(article -> appendArticle(sb, article));
+
+        return sb.toString().trim();
+    }
+
+    private void appendArticle(StringBuilder sb, NewsArticle article) {
+        sb.append("- ").append(article.getTitle());
+
+        if (article.getSource() != null && !article.getSource().isBlank()) {
+            sb.append(" (").append(article.getSource()).append(")");
+        }
+
+        if (article.getPublishedAt() != null && !article.getPublishedAt().isBlank()) {
+            sb.append(" - ").append(article.getPublishedAt());
+        }
+
+        sb.append("\n");
     }
 
     private String buildToolsList() {
@@ -89,9 +143,9 @@ public class MCPRouter {
                 .collect(Collectors.joining("\n"));
     }
 
-    private String extractTool(String content) {
+    private ToolDecision extractToolDecision(String content) {
         if (content == null) {
-            return NO_TOOL;
+            return ToolDecision.none();
         }
 
         try {
@@ -99,22 +153,48 @@ public class MCPRouter {
             int end = content.lastIndexOf('}');
 
             if (start == -1 || end <= start) {
-                return NO_TOOL;
+                return ToolDecision.none();
             }
 
             JsonNode node = objectMapper.readTree(content.substring(start, end + 1));
             String tool = node.path("tool").asText();
 
             if (tool.isBlank() || "none".equalsIgnoreCase(tool)) {
-                return NO_TOOL;
+                return ToolDecision.none();
             }
 
             log.debug("Extracted tool from LLM response. tool={}", tool);
-            return tool;
+            return new ToolDecision(tool, extractArguments(node.path("arguments")));
         } catch (Exception e) {
             log.warn("Unable to parse tool decision from LLM response. Falling back to no-tool path. reason={}",
                     e.getMessage());
-            return NO_TOOL;
+            return ToolDecision.none();
+        }
+    }
+
+    private Map<String, String> extractArguments(JsonNode argumentsNode) {
+        if (!argumentsNode.isObject()) {
+            return Map.of();
+        }
+
+        Map<String, String> arguments = new HashMap<>();
+        Iterator<Map.Entry<String, JsonNode>> fields = argumentsNode.fields();
+
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> field = fields.next();
+            JsonNode value = field.getValue();
+
+            if (value.isTextual() && !value.asText().isBlank()) {
+                arguments.put(field.getKey(), value.asText().trim());
+            }
+        }
+
+        return arguments;
+    }
+
+    private record ToolDecision(String tool, Map<String, String> arguments) {
+        private static ToolDecision none() {
+            return new ToolDecision(NO_TOOL, Map.of());
         }
     }
 }

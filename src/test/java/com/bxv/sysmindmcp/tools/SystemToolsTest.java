@@ -6,6 +6,7 @@ import com.bxv.sysmindmcp.model.RamStats;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -81,6 +82,55 @@ class SystemToolsTest {
         assertThat(result).isInstanceOf(NewsResult.class);
         assertThat(requestedUri.get().toString()).contains("example.com/rss/search");
         assertThat(requestedUri.get().toString()).contains("q=New+York+news");
+    }
+
+    @Test
+    void newsToolResolvesSearchLanguageCountryAndCeidFromTemplate() {
+        AtomicReference<URI> requestedUri = new AtomicReference<>();
+        NewsTool tool = new NewsTool(
+                "https://example.com/rss?hl={language}&gl={country}&ceid={ceid}",
+                "https://example.com/rss/search?q={query}&hl={hl}&gl={gl}&ceid={ceid}",
+                "fr-CA",
+                "CA",
+                "",
+                uri -> {
+                    requestedUri.set(uri);
+                    return new NewsTool.FeedResponse(200, emptyRss());
+                });
+
+        tool.execute("show me headlines near Montreal now");
+
+        assertThat(requestedUri.get().toString())
+                .contains("q=Montreal+news")
+                .contains("hl=fr-CA")
+                .contains("gl=CA")
+                .contains("ceid=CA:fr");
+    }
+
+    @Test
+    void newsToolUsesLlmProvidedArgumentsWhenBuildingSearchFeed() {
+        AtomicReference<URI> requestedUri = new AtomicReference<>();
+        NewsTool tool = new NewsTool(
+                "https://example.com/rss?hl={language}&gl={country}&ceid={ceid}",
+                "https://example.com/rss/search?q={query}&hl={language}&gl={country}&ceid={ceid}",
+                "en-US",
+                "US",
+                "",
+                uri -> {
+                    requestedUri.set(uri);
+                    return new NewsTool.FeedResponse(200, emptyRss());
+                });
+
+        tool.execute("latest Hindi news about AI policy in India", Map.of(
+                "query", "AI policy India",
+                "language", "hi-IN",
+                "country", "IN"));
+
+        assertThat(requestedUri.get().toString())
+                .contains("q=AI+policy+India")
+                .contains("hl=hi-IN")
+                .contains("gl=IN")
+                .contains("ceid=IN:hi");
     }
 
     @Test

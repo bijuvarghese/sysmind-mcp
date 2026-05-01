@@ -27,6 +27,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -41,21 +42,41 @@ public class NewsTool implements SystemTool {
     private static final Set<String> NON_PLACE_TERMS = Set.of(
             "web", "the web", "internet", "the internet", "online");
 
-    private final URI feedUri;
+    private final String feedUrlTemplate;
     private final String locationFeedUrlTemplate;
+    private final String language;
+    private final String country;
+    private final String ceid;
     private final FeedClient feedClient;
 
     @Autowired
     public NewsTool(
             @Value("${news.feed-url}") String feedUrl,
-            @Value("${news.location-feed-url-template}") String locationFeedUrlTemplate) {
-        this(URI.create(feedUrl), locationFeedUrlTemplate, HttpClient.newBuilder()
+            @Value("${news.location-feed-url-template}") String locationFeedUrlTemplate,
+            @Value("${news.language:en-US}") String language,
+            @Value("${news.country:US}") String country,
+            @Value("${news.ceid:}") String ceid) {
+        this(feedUrl, locationFeedUrlTemplate, language, country, ceid, HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
                 .build());
     }
 
     NewsTool(URI feedUri, String locationFeedUrlTemplate, HttpClient httpClient) {
-        this(feedUri, locationFeedUrlTemplate, uri -> {
+        this(feedUri.toString(), locationFeedUrlTemplate, "en-US", "US", "", httpClient);
+    }
+
+    NewsTool(URI feedUri, String locationFeedUrlTemplate, FeedClient feedClient) {
+        this(feedUri.toString(), locationFeedUrlTemplate, "en-US", "US", "", feedClient);
+    }
+
+    NewsTool(
+            String feedUrlTemplate,
+            String locationFeedUrlTemplate,
+            String language,
+            String country,
+            String ceid,
+            HttpClient httpClient) {
+        this(feedUrlTemplate, locationFeedUrlTemplate, language, country, ceid, uri -> {
             HttpRequest request = HttpRequest.newBuilder(uri)
                     .timeout(Duration.ofSeconds(8))
                     .header("User-Agent", "SysMindMCP/1.0")
@@ -89,8 +110,13 @@ public class NewsTool implements SystemTool {
 
     @Override
     public Object execute(String prompt) {
+        return execute(prompt, Map.of());
+    }
+
+    @Override
+    public Object execute(String prompt, Map<String, String> arguments) {
         Instant fetchedAt = Instant.now();
-        URI requestUri = feedUriFor(prompt);
+        URI requestUri = feedUriFor(prompt, arguments);
 
         try {
             FeedResponse response = feedClient.fetch(requestUri);
@@ -106,15 +132,85 @@ public class NewsTool implements SystemTool {
         }
     }
 
-    private URI feedUriFor(String prompt) {
+    private URI feedUriFor(String prompt, Map<String, String> arguments) {
         String location = extractLocation(prompt);
+        String query = firstText(arguments, "query", "search", "topic");
+        String resolvedLanguage = firstText(arguments, "language", "hl");
+        String resolvedCountry = firstText(arguments, "country", "gl");
+        String resolvedCeid = firstText(arguments, "ceid");
 
-        if (location.isBlank()) {
-            return feedUri;
+        if (resolvedLanguage.isBlank()) {
+            resolvedLanguage = configuredLanguage();
         }
 
-        String query = URLEncoder.encode(location + " news", StandardCharsets.UTF_8);
-        return URI.create(locationFeedUrlTemplate.replace("{query}", query));
+        if (resolvedCountry.isBlank()) {
+            resolvedCountry = configuredCountry();
+        }
+
+        if (resolvedCeid.isBlank()) {
+            resolvedCeid = configuredCeid(resolvedLanguage, resolvedCountry);
+        }
+
+        if (query.isBlank() && !location.isBlank()) {
+            query = location + " news";
+        }
+
+        if (query.isBlank()) {
+            return resolveFeedUri(feedUrlTemplate, "", resolvedLanguage, resolvedCountry, resolvedCeid);
+        }
+
+        return resolveFeedUri(locationFeedUrlTemplate, query, resolvedLanguage, resolvedCountry, resolvedCeid);
+    }
+
+    private URI resolveFeedUri(String template, String query, String language, String country, String ceid) {
+        return URI.create(template
+                .replace("{query}", encode(query))
+                .replace("{language}", language)
+                .replace("{hl}", language)
+                .replace("{country}", country)
+                .replace("{gl}", country)
+                .replace("{languageCode}", languageCode(language))
+                .replace("{ceid}", ceid));
+    }
+
+    private String firstText(Map<String, String> arguments, String... keys) {
+        if (arguments == null || arguments.isEmpty()) {
+            return "";
+        }
+
+        for (String key : keys) {
+            String value = arguments.get(key);
+
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+        }
+
+        return "";
+    }
+
+    private String languageCode(String language) {
+        return language.split("[-_]", 2)[0];
+    }
+
+    private String configuredLanguage() {
+        return language == null || language.isBlank() ? "en-US" : language;
+    }
+
+    private String configuredCountry() {
+        return country == null || country.isBlank() ? "US" : country;
+    }
+
+    private String configuredCeid(String language, String country) {
+        if (ceid != null && !ceid.isBlank()) {
+            return ceid;
+        }
+
+        return country + ":" + languageCode(language);
+    }
+
+    private String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     private String extractLocation(String prompt) {

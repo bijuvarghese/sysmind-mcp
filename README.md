@@ -28,8 +28,11 @@ If no tool applies, or the LLM returns an invalid/unparseable tool decision, the
 ```env
 LLM_URL=http://localhost:1234
 LLM_TIMEOUT=3m
-NEWS_FEED_URL=https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en
-NEWS_LOCATION_FEED_URL_TEMPLATE=https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en
+NEWS_LANGUAGE=en-US
+NEWS_COUNTRY=US
+NEWS_CEID=
+NEWS_FEED_URL=https://news.google.com/rss?hl={language}&gl={country}&ceid={ceid}
+NEWS_LOCATION_FEED_URL_TEMPLATE=https://news.google.com/rss/search?q={query}&hl={language}&gl={country}&ceid={ceid}
 ```
 
 For Docker from the repository root, use:
@@ -46,8 +49,9 @@ Spring imports optional env files from:
 
 The `llm.*` settings are bound through `AppConfig` with `@ConfigurationProperties`, so IDE tooling can recognize `llm.url` and `llm.timeout`.
 
-`NEWS_FEED_URL` is required by the news tool and is bound through `news.feed-url`.
+`NEWS_FEED_URL` is bound through `news.feed-url`.
 `NEWS_LOCATION_FEED_URL_TEMPLATE` is used when a prompt names a place. Include `{query}` where the encoded location search should go.
+News URL templates support `{query}`, `{language}`/`{hl}`, `{country}`/`{gl}`, `{languageCode}`, and `{ceid}`. If `NEWS_CEID` is empty, the backend derives it from `NEWS_COUNTRY` and `NEWS_LANGUAGE`, for example `US:en`.
 
 ## Development
 
@@ -88,6 +92,9 @@ LLM_URL
 LLM_TIMEOUT
 NEWS_FEED_URL
 NEWS_LOCATION_FEED_URL_TEMPLATE
+NEWS_LANGUAGE
+NEWS_COUNTRY
+NEWS_CEID
 SPRING_PROFILES_ACTIVE
 ```
 

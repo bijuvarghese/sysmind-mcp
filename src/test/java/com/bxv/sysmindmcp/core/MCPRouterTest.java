@@ -2,12 +2,16 @@ package com.bxv.sysmindmcp.core;
 
 import com.bxv.sysmindmcp.llm.LLMService;
 import com.bxv.sysmindmcp.model.LLMResponse;
+import com.bxv.sysmindmcp.model.NewsArticle;
+import com.bxv.sysmindmcp.model.NewsResult;
 import com.bxv.sysmindmcp.tools.SystemTool;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -89,6 +93,77 @@ class MCPRouterTest {
                 .verifyComplete();
 
         verify(llm).ask("Tell me a joke", null);
+    }
+
+    @Test
+    void handlePassesLlmToolArgumentsToSelectedTool() {
+        LLMService llm = mock(LLMService.class);
+        SystemTool newsTool = new SystemTool() {
+            @Override
+            public String name() {
+                return "latest_news";
+            }
+
+            @Override
+            public String version() {
+                return "v1";
+            }
+
+            @Override
+            public String description() {
+                return "Return news";
+            }
+
+            @Override
+            public Object execute() {
+                return "no-args";
+            }
+
+            @Override
+            public Object execute(String prompt, Map<String, String> arguments) {
+                return arguments.get("query") + "|" + arguments.get("language") + "|" + arguments.get("country");
+            }
+        };
+        MCPRouter router = new MCPRouter(new ToolRegistry(List.of(newsTool)), llm);
+
+        when(llm.ask(org.mockito.ArgumentMatchers.contains("For latest_news, infer URL arguments"), eq("model-a")))
+                .thenReturn(Mono.just(response("""
+                        {"tool":"latest_news","arguments":{"query":"AI policy India","language":"hi-IN","country":"IN"}}
+                        """)));
+        when(llm.ask(org.mockito.ArgumentMatchers.contains("Available information:\nAI policy India|hi-IN|IN"), eq("model-a")))
+                .thenReturn(Mono.just(response("Here are the latest headlines.")));
+
+        StepVerifier.create(router.handle("latest Hindi news about AI policy in India", "model-a"))
+                .assertNext(response -> assertThat(response.firstMessageContent()).isEqualTo("Here are the latest headlines."))
+                .verifyComplete();
+
+        verify(llm).ask(org.mockito.ArgumentMatchers.contains("Available information:\nAI policy India|hi-IN|IN"), eq("model-a"));
+    }
+
+    @Test
+    void handleCompactsNewsResultsBeforeAskingForFinalAnswer() {
+        LLMService llm = mock(LLMService.class);
+        NewsResult newsResult = new NewsResult(
+                Instant.parse("2026-05-01T12:00:00Z"),
+                "https://example.com/rss/search?q=kerala",
+                List.of(
+                        new NewsArticle("Kerala headline one", "Example Wire", "https://example.com/one", "Fri, 01 May 2026 12:00:00 GMT"),
+                        new NewsArticle("Kerala headline two", "Example Wire", "https://example.com/two", "Fri, 01 May 2026 11:00:00 GMT")),
+                null);
+        SystemTool newsTool = tool("latest_news", "Return news", newsResult);
+        MCPRouter router = new MCPRouter(new ToolRegistry(List.of(newsTool)), llm);
+
+        when(llm.ask(org.mockito.ArgumentMatchers.contains("Choose the best matching tool"), eq("model-a")))
+                .thenReturn(Mono.just(response("{\"tool\":\"latest_news\",\"arguments\":{\"query\":\"Kerala news\"}}")));
+        when(llm.ask(org.mockito.ArgumentMatchers.contains("Kerala headline one"), eq("model-a")))
+                .thenReturn(Mono.just(response("Kerala headline summary.")));
+
+        StepVerifier.create(router.handle("latest news from Kerala", "model-a"))
+                .assertNext(response -> assertThat(response.firstMessageContent()).isEqualTo("Kerala headline summary."))
+                .verifyComplete();
+
+        verify(llm).ask(org.mockito.ArgumentMatchers.contains("Headlines:\n- Kerala headline one"), eq("model-a"));
+        verify(llm).ask(org.mockito.ArgumentMatchers.contains("Do not include reasoning"), eq("model-a"));
     }
 
     @Test
