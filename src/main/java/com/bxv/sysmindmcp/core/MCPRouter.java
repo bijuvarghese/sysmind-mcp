@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.util.stream.Collectors;
+
 @Service
 @AllArgsConstructor
 public class MCPRouter {
@@ -23,17 +25,18 @@ public class MCPRouter {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public Mono<LLMResponse> handle(String prompt, String model) {
-        String tools = buildToolsList();
+        String decisionPrompt = """
+                You are a system agent.
 
-        String decisionPrompt = "You are a system agent.\n\n" +
-                "Choose the best matching tool from the list below only when the user asks for data that tool provides.\n"
-                +
-                "If no tool applies, return {\"tool\":\"none\"}.\n" +
-                tools +
-                "\nReturn ONLY valid JSON. No explanation. No extra text.\n" +
-                "Format:\n" +
-                "{\"tool\":\"tool_name_or_none\"}\n\n" +
-                "User request:\n" + prompt;
+                Choose the best matching tool from the list below only when the user asks for data that tool provides.
+                If no tool applies, return {"tool":"none"}.
+                %s
+                Return ONLY valid JSON. No explanation. No extra text.
+                Format:
+                {"tool":"tool_name_or_none"}
+
+                User request:
+                %s""".formatted(buildToolsList(), prompt);
 
         int promptLength = prompt == null ? 0 : prompt.length();
         log.debug("Requesting tool decision. availableTools={}, promptLength={}", registry.getTools().size(),
@@ -68,54 +71,46 @@ public class MCPRouter {
     private String formatPrompt(String prompt, Object result) {
         log.debug("Formatting tool result.");
 
-        return "Answer the user in plain language using the available information.\n" +
-                "Keep it concise and avoid implementation details.\n\n" +
-                "User request:\n" + prompt + "\n\n" +
-                "Available information:\n" + result;
+        return """
+                Answer the user in plain language using the available information.
+                Keep it concise and avoid implementation details.
+
+                User request:
+                %s
+
+                Available information:
+                %s"""
+                .formatted(prompt, result);
     }
 
     private String buildToolsList() {
-        StringBuilder sb = new StringBuilder();
-
-        registry.getTools().forEach(tool -> {
-            sb.append("- ")
-                    .append(tool.name())
-                    .append(": ")
-                    .append(tool.description())
-                    .append("\n");
-        });
-
-        return sb.toString();
+        return registry.getTools().stream()
+                .map(tool -> "- " + tool.name() + ": " + tool.description())
+                .collect(Collectors.joining("\n"));
     }
 
     private String extractTool(String content) {
-        try {
-            if (content == null) {
-                return NO_TOOL;
-            }
+        if (content == null) {
+            return NO_TOOL;
+        }
 
-            int start = content.indexOf("{");
-            int end = content.lastIndexOf("}") + 1;
+        try {
+            int start = content.indexOf('{');
+            int end = content.lastIndexOf('}');
 
             if (start == -1 || end <= start) {
                 return NO_TOOL;
             }
 
-            String json = content.substring(start, end);
-            JsonNode node = objectMapper.readTree(json);
+            JsonNode node = objectMapper.readTree(content.substring(start, end + 1));
+            String tool = node.path("tool").asText();
 
-            if (node.has("tool")) {
-                String tool = node.get("tool").asText();
-                if ("none".equalsIgnoreCase(tool)) {
-                    return NO_TOOL;
-                }
-
-                log.debug("Extracted tool from LLM response. tool={}", tool);
-                return tool;
+            if (tool.isBlank() || "none".equalsIgnoreCase(tool)) {
+                return NO_TOOL;
             }
 
-            return NO_TOOL;
-
+            log.debug("Extracted tool from LLM response. tool={}", tool);
+            return tool;
         } catch (Exception e) {
             log.warn("Unable to parse tool decision from LLM response. Falling back to no-tool path. reason={}",
                     e.getMessage());
