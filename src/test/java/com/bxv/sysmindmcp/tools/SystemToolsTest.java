@@ -6,10 +6,13 @@ import com.bxv.sysmindmcp.model.RamStats;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class SystemToolsTest {
+    private static final String LOCATION_FEED_TEMPLATE = "https://example.com/rss/search?q={query}";
+
 
     @Test
     void diskToolReturnsConsistentDiskStats() {
@@ -52,7 +55,7 @@ class SystemToolsTest {
                 </rss>
                 """;
         URI feedUri = URI.create("https://example.com/rss");
-        Object result = new NewsTool(feedUri, uri -> new NewsTool.FeedResponse(200, rss)).execute();
+        Object result = new NewsTool(feedUri, LOCATION_FEED_TEMPLATE, uri -> new NewsTool.FeedResponse(200, rss)).execute();
 
         assertThat(result).isInstanceOf(NewsResult.class);
 
@@ -63,5 +66,45 @@ class SystemToolsTest {
         assertThat(news.getArticles().getFirst().getTitle()).isEqualTo("First headline");
         assertThat(news.getArticles().getFirst().getSource()).isEqualTo("Example Wire");
         assertThat(news.getArticles().getFirst().getUrl()).isEqualTo("https://example.com/first");
+    }
+
+    @Test
+    void newsToolUsesLocationSpecificFeedWhenPromptNamesAPlace() {
+        AtomicReference<URI> requestedUri = new AtomicReference<>();
+        NewsTool tool = new NewsTool(URI.create("https://example.com/rss"), LOCATION_FEED_TEMPLATE, uri -> {
+            requestedUri.set(uri);
+            return new NewsTool.FeedResponse(200, emptyRss());
+        });
+
+        Object result = tool.execute("what is the latest news in New York today?");
+
+        assertThat(result).isInstanceOf(NewsResult.class);
+        assertThat(requestedUri.get().toString()).contains("example.com/rss/search");
+        assertThat(requestedUri.get().toString()).contains("q=New+York+news");
+    }
+
+    @Test
+    void newsToolUsesDefaultFeedWhenPromptDoesNotNameAPlace() {
+        URI feedUri = URI.create("https://example.com/rss");
+        AtomicReference<URI> requestedUri = new AtomicReference<>();
+        NewsTool tool = new NewsTool(feedUri, LOCATION_FEED_TEMPLATE, uri -> {
+            requestedUri.set(uri);
+            return new NewsTool.FeedResponse(200, emptyRss());
+        });
+
+        tool.execute("get news from the web");
+
+        assertThat(requestedUri.get()).isEqualTo(feedUri);
+    }
+
+    private String emptyRss() {
+        return """
+                <?xml version="1.0" encoding="UTF-8" ?>
+                <rss version="2.0">
+                  <channel>
+                    <title>Test News</title>
+                  </channel>
+                </rss>
+                """;
     }
 }

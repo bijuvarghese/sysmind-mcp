@@ -28,15 +28,15 @@ class MCPRouterTest {
                 """;
         when(llm.ask(org.mockito.ArgumentMatchers.contains("Choose the best matching tool"), eq("model-a")))
                 .thenReturn(Mono.just(decisionResponse));
-        when(llm.ask(org.mockito.ArgumentMatchers.contains("Tool: ram_usage"), eq("model-a")))
+        when(llm.ask(org.mockito.ArgumentMatchers.contains("Answer the user in plain language"), eq("model-a")))
                 .thenReturn(Mono.just("RAM usage is healthy."));
 
         StepVerifier.create(router.handle("How much memory is available?", "model-a"))
                 .expectNext("RAM usage is healthy.")
                 .verifyComplete();
 
-        verify(llm).ask(org.mockito.ArgumentMatchers.contains("User request:\nHow much memory is available?"), eq("model-a"));
-        verify(llm).ask(org.mockito.ArgumentMatchers.contains("Result: free=10,total=20,used=10"), eq("model-a"));
+        verify(llm).ask(org.mockito.ArgumentMatchers.contains("Choose the best matching tool"), eq("model-a"));
+        verify(llm).ask(org.mockito.ArgumentMatchers.contains("Available information:\nfree=10,total=20,used=10"), eq("model-a"));
     }
 
     @Test

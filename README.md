@@ -28,6 +28,7 @@ If no tool applies, or the LLM returns an invalid/unparseable tool decision, the
 LLM_URL=http://localhost:1234
 LLM_TIMEOUT=3m
 NEWS_FEED_URL=https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en
+NEWS_LOCATION_FEED_URL_TEMPLATE=https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en
 ```
 
 For Docker from the repository root, use:
@@ -45,6 +46,7 @@ Spring imports optional env files from:
 The `llm.*` settings are bound through `AppConfig` with `@ConfigurationProperties`, so IDE tooling can recognize `llm.url` and `llm.timeout`.
 
 `NEWS_FEED_URL` is required by the news tool and is bound through `news.feed-url`.
+`NEWS_LOCATION_FEED_URL_TEMPLATE` is used when a prompt names a place. Include `{query}` where the encoded location search should go.
 
 ## Development
 
@@ -84,6 +86,7 @@ The root Compose stack builds this service and injects:
 LLM_URL
 LLM_TIMEOUT
 NEWS_FEED_URL
+NEWS_LOCATION_FEED_URL_TEMPLATE
 SPRING_PROFILES_ACTIVE
 ```
 

@@ -5,4 +5,8 @@ public interface SystemTool {
     String version();
     String description();
     Object execute();
+
+    default Object execute(String prompt) {
+        return execute();
+    }
 }

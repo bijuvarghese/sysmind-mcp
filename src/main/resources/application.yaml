@@ -10,3 +10,4 @@ llm:
 
 news:
   feed-url: "${NEWS_FEED_URL}"
+  location-feed-url-template: "${NEWS_LOCATION_FEED_URL_TEMPLATE}"

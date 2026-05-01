@@ -54,22 +54,23 @@ public class MCPRouter {
             return llm.ask(prompt, model);
         }
 
-        return executeTool(tool)
+        return executeTool(tool, prompt)
                 .flatMap(formattedPrompt -> llm.ask(formattedPrompt, model));
     }
 
-    private Mono<String> executeTool(String tool) {
-        return Mono.fromCallable(() -> registry.getTool(tool).execute())
+    private Mono<String> executeTool(String tool, String prompt) {
+        return Mono.fromCallable(() -> registry.getTool(tool).execute(prompt))
                 .subscribeOn(Schedulers.boundedElastic()) // prevent blocking main thread
-                .map(result -> formatPrompt(tool, result));
+                .map(result -> formatPrompt(prompt, result));
     }
 
-    private String formatPrompt(String tool, Object result) {
-        log.debug("Formatting tool result. tool={}", tool);
+    private String formatPrompt(String prompt, Object result) {
+        log.debug("Formatting tool result.");
 
-        return "Explain this tool result clearly:\n" +
-                "Tool: " + tool + "\n" +
-                "Result: " + result;
+        return "Answer the user in plain language using the available information.\n" +
+                "Keep it concise and avoid implementation details.\n\n" +
+                "User request:\n" + prompt + "\n\n" +
+                "Available information:\n" + result;
     }
 
     private String buildToolsList() {
