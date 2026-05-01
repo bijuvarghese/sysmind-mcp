@@ -2,6 +2,7 @@ package com.bxv.sysmindmcp.controller;
 
 import com.bxv.sysmindmcp.core.MCPRouter;
 import com.bxv.sysmindmcp.llm.LLMService;
+import com.bxv.sysmindmcp.model.LLMResponse;
 import com.bxv.sysmindmcp.model.ModelInfo;
 import com.bxv.sysmindmcp.model.ModelListResponse;
 import org.junit.jupiter.api.Test;
@@ -25,17 +26,19 @@ class AgentControllerTest {
         LLMService llmService = mock(LLMService.class);
         WebTestClient client = WebTestClient.bindToController(new AgentController(router, llmService)).build();
 
-        when(router.handle("status please", "model-a")).thenReturn(Mono.just("agent response"));
+        when(router.handle("status please", "model-a")).thenReturn(Mono.just(response("agent response")));
 
         client.post()
                 .uri("/agent")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("""
                         {"prompt":"status please","model":"model-a"}
-                        """)
+                """)
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(String.class).isEqualTo("agent response");
+                .expectBody()
+                .jsonPath("$.object").isEqualTo("chat.completion")
+                .jsonPath("$.choices[0].message.content").isEqualTo("agent response");
 
         verify(router).handle(eq("status please"), eq("model-a"));
     }
@@ -102,5 +105,21 @@ class AgentControllerTest {
                 .jsonPath("$.object").isEqualTo("list")
                 .jsonPath("$.data[0].id").isEqualTo("local-model")
                 .jsonPath("$.data[0].owned_by").isEqualTo("local");
+    }
+
+    private static LLMResponse response(String content) {
+        LLMResponse.Message message = new LLMResponse.Message();
+        message.setRole("assistant");
+        message.setContent(content);
+
+        LLMResponse.Choice choice = new LLMResponse.Choice();
+        choice.setIndex(0);
+        choice.setMessage(message);
+        choice.setFinishReason("stop");
+
+        LLMResponse response = new LLMResponse();
+        response.setObject("chat.completion");
+        response.setChoices(List.of(choice));
+        return response;
     }
 }

@@ -1,6 +1,7 @@
 package com.bxv.sysmindmcp.core;
 
 import com.bxv.sysmindmcp.llm.LLMService;
+import com.bxv.sysmindmcp.model.LLMResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
@@ -21,7 +22,7 @@ public class MCPRouter {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public Mono<String> handle(String prompt, String model) {
+    public Mono<LLMResponse> handle(String prompt, String model) {
         String tools = buildToolsList();
 
         String decisionPrompt = "You are a system agent.\n\n" +
@@ -39,11 +40,11 @@ public class MCPRouter {
                 promptLength);
 
         return llm.ask(decisionPrompt, model)
-                .map(this::extractTool)
+                .map(response -> extractTool(response.firstMessageContent()))
                 .flatMap(tool -> executeToolOrFallback(tool, prompt, model));
     }
 
-    private Mono<String> executeToolOrFallback(String tool, String prompt, String model) {
+    private Mono<LLMResponse> executeToolOrFallback(String tool, String prompt, String model) {
         if (NO_TOOL.equals(tool)) {
             log.warn("LLM tool decision was unavailable. Asking LLM without tool data.");
             return llm.ask(prompt, model);
@@ -87,16 +88,10 @@ public class MCPRouter {
         return sb.toString();
     }
 
-    private String extractTool(String response) {
+    private String extractTool(String content) {
         try {
-            JsonNode root = objectMapper.readTree(response);
-            String content = response;
-
-            if (root.has("choices") && root.get("choices").isArray() && root.get("choices").size() > 0) {
-                JsonNode message = root.get("choices").get(0).get("message");
-                if (message != null && message.has("content")) {
-                    content = message.get("content").asText();
-                }
+            if (content == null) {
+                return NO_TOOL;
             }
 
             int start = content.indexOf("{");

@@ -3,6 +3,7 @@ package com.bxv.sysmindmcp.controller;
 import com.bxv.sysmindmcp.core.MCPRouter;
 import com.bxv.sysmindmcp.llm.LLMService;
 import com.bxv.sysmindmcp.model.AgentRequest;
+import com.bxv.sysmindmcp.model.LLMResponse;
 import com.bxv.sysmindmcp.model.ModelListResponse;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -21,7 +22,7 @@ public class AgentController {
     private final LLMService llmService;
 
     @PostMapping("/agent")
-    public Mono<String> run(@Valid @RequestBody AgentRequest request) {
+    public Mono<LLMResponse> run(@Valid @RequestBody AgentRequest request) {
         return router.handle(request.prompt(), request.model());
     }
 

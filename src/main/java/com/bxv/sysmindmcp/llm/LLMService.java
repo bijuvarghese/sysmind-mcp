@@ -2,17 +2,18 @@ package com.bxv.sysmindmcp.llm;
 
 import com.bxv.sysmindmcp.config.AppConfig;
 import com.bxv.sysmindmcp.model.ChatCompletionRequest;
+import com.bxv.sysmindmcp.model.LLMResponse;
 import com.bxv.sysmindmcp.model.ModelListResponse;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
@@ -29,15 +30,16 @@ public class LLMService {
         private final String chatCompletionsPath;
 
         @Autowired
-        public LLMService(AppConfig appConfig,
+        public LLMService(WebClient llmWebClient,
+                        AppConfig appConfig,
                         @Value("${llm.model:google/gemma-4-e4b}") String model) {
-                this(WebClient.builder().baseUrl(appConfig.getUrl()).build(),
+                this(llmWebClient,
                                 model,
                                 appConfig.getTimeout(),
                                 appConfig.getChatCompletionsPath());
         }
 
-        public Mono<String> ask(String prompt, String requestedModel) {
+        public Mono<LLMResponse> ask(String prompt, String requestedModel) {
                 String targetModel = (requestedModel != null && !requestedModel.trim().isEmpty()) ? requestedModel : this.model;
                 int promptLength = prompt == null ? 0 : prompt.length();
                 log.debug("Sending LLM chat completion request. model={}, promptLength={}", targetModel, promptLength);
@@ -46,7 +48,7 @@ public class LLMService {
                                 .uri(chatCompletionsPath)
                                 .bodyValue(ChatCompletionRequest.userMessage(targetModel, prompt))
                                 .retrieve()
-                                .bodyToMono(String.class)
+                                .bodyToMono(LLMResponse.class)
                                 .timeout(timeout)
                                 .onErrorMap(this::shouldMapUpstreamError, this::toResponseStatusException);
         }

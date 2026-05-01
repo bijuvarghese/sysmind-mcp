@@ -1,6 +1,7 @@
 package com.bxv.sysmindmcp.core;
 
 import com.bxv.sysmindmcp.llm.LLMService;
+import com.bxv.sysmindmcp.model.LLMResponse;
 import com.bxv.sysmindmcp.tools.SystemTool;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
@@ -23,16 +24,13 @@ class MCPRouterTest {
         SystemTool diskTool = tool("disk_usage", "Return disk usage", "free=20,total=40,used=20");
         MCPRouter router = new MCPRouter(new ToolRegistry(List.of(ramTool, diskTool)), llm);
 
-        String decisionResponse = """
-                {"choices":[{"message":{"content":"{\\"tool\\":\\"ram_usage\\"}"}}]}
-                """;
         when(llm.ask(org.mockito.ArgumentMatchers.contains("Choose the best matching tool"), eq("model-a")))
-                .thenReturn(Mono.just(decisionResponse));
+                .thenReturn(Mono.just(response("{\"tool\":\"ram_usage\"}")));
         when(llm.ask(org.mockito.ArgumentMatchers.contains("Answer the user in plain language"), eq("model-a")))
-                .thenReturn(Mono.just("RAM usage is healthy."));
+                .thenReturn(Mono.just(response("RAM usage is healthy.")));
 
         StepVerifier.create(router.handle("How much memory is available?", "model-a"))
-                .expectNext("RAM usage is healthy.")
+                .assertNext(response -> assertThat(response.firstMessageContent()).isEqualTo("RAM usage is healthy."))
                 .verifyComplete();
 
         verify(llm).ask(org.mockito.ArgumentMatchers.contains("Choose the best matching tool"), eq("model-a"));
@@ -46,12 +44,12 @@ class MCPRouterTest {
         MCPRouter router = new MCPRouter(new ToolRegistry(List.of(diskTool)), llm);
 
         when(llm.ask(org.mockito.ArgumentMatchers.contains("Choose the best matching tool"), eq(null)))
-                .thenReturn(Mono.just("{\"tool\":\"not_registered\"}"));
+                .thenReturn(Mono.just(response("{\"tool\":\"not_registered\"}")));
         when(llm.ask("Check something unsupported", null))
-                .thenReturn(Mono.just("Direct LLM response."));
+                .thenReturn(Mono.just(response("Direct LLM response.")));
 
         StepVerifier.create(router.handle("Check something unsupported", null))
-                .expectNext("Direct LLM response.")
+                .assertNext(response -> assertThat(response.firstMessageContent()).isEqualTo("Direct LLM response."))
                 .verifyComplete();
 
         verify(llm).ask("Check something unsupported", null);
@@ -64,12 +62,12 @@ class MCPRouterTest {
         MCPRouter router = new MCPRouter(new ToolRegistry(List.of(diskTool)), llm);
 
         when(llm.ask(org.mockito.ArgumentMatchers.contains("Choose the best matching tool"), eq(null)))
-                .thenReturn(Mono.just("not-json"));
+                .thenReturn(Mono.just(response("not-json")));
         when(llm.ask("Explain the system status", null))
-                .thenReturn(Mono.just("Direct LLM response."));
+                .thenReturn(Mono.just(response("Direct LLM response.")));
 
         StepVerifier.create(router.handle("Explain the system status", null))
-                .expectNext("Direct LLM response.")
+                .assertNext(response -> assertThat(response.firstMessageContent()).isEqualTo("Direct LLM response."))
                 .verifyComplete();
 
         verify(llm).ask("Explain the system status", null);
@@ -82,12 +80,12 @@ class MCPRouterTest {
         MCPRouter router = new MCPRouter(new ToolRegistry(List.of(diskTool)), llm);
 
         when(llm.ask(org.mockito.ArgumentMatchers.contains("If no tool applies"), eq(null)))
-                .thenReturn(Mono.just("{\"tool\":\"none\"}"));
+                .thenReturn(Mono.just(response("{\"tool\":\"none\"}")));
         when(llm.ask("Tell me a joke", null))
-                .thenReturn(Mono.just("Direct LLM response."));
+                .thenReturn(Mono.just(response("Direct LLM response.")));
 
         StepVerifier.create(router.handle("Tell me a joke", null))
-                .expectNext("Direct LLM response.")
+                .assertNext(response -> assertThat(response.firstMessageContent()).isEqualTo("Direct LLM response."))
                 .verifyComplete();
 
         verify(llm).ask("Tell me a joke", null);
@@ -126,5 +124,21 @@ class MCPRouterTest {
                 return result;
             }
         };
+    }
+
+    private static LLMResponse response(String content) {
+        LLMResponse.Message message = new LLMResponse.Message();
+        message.setRole("assistant");
+        message.setContent(content);
+
+        LLMResponse.Choice choice = new LLMResponse.Choice();
+        choice.setIndex(0);
+        choice.setMessage(message);
+        choice.setFinishReason("stop");
+
+        LLMResponse response = new LLMResponse();
+        response.setObject("chat.completion");
+        response.setChoices(List.of(choice));
+        return response;
     }
 }

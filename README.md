@@ -7,6 +7,7 @@ Spring Boot 4 backend for SysMind. It receives chat prompts, asks an OpenAI-comp
 - `POST /agent`
   - Body: `{"prompt":"...","model":"optional-model-id"}`
   - `prompt` is required and validated.
+  - Returns the LLM chat completion response JSON.
 - `GET /v1/models`
   - Proxies the configured LLM model list.
 
