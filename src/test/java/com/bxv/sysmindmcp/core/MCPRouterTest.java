@@ -10,7 +10,10 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -143,6 +146,8 @@ class MCPRouterTest {
     @Test
     void handleCompactsNewsResultsBeforeAskingForFinalAnswer() {
         LLMService llm = mock(LLMService.class);
+        String expectedLocalTime = DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a z", Locale.US)
+                .format(Instant.parse("2026-05-01T12:00:00Z").atZone(ZoneId.systemDefault()));
         NewsResult newsResult = new NewsResult(
                 Instant.parse("2026-05-01T12:00:00Z"),
                 "https://example.com/rss/search?q=kerala",
@@ -162,7 +167,10 @@ class MCPRouterTest {
                 .assertNext(response -> assertThat(response.firstMessageContent()).isEqualTo("Kerala headline summary."))
                 .verifyComplete();
 
-        verify(llm).ask(org.mockito.ArgumentMatchers.contains("Headlines:\n- Kerala headline one"), eq("model-a"));
+        verify(llm).ask(org.mockito.ArgumentMatchers.contains(
+                "Headlines:\n- [published: " + expectedLocalTime + "] Kerala headline one"), eq("model-a"));
+        verify(llm).ask(org.mockito.ArgumentMatchers.contains("[rss: https://example.com/rss/search?q=kerala]"), eq("model-a"));
+        verify(llm).ask(org.mockito.ArgumentMatchers.contains("include the published date/time and RSS feed"), eq("model-a"));
         verify(llm).ask(org.mockito.ArgumentMatchers.contains("Do not include reasoning"), eq("model-a"));
     }
 

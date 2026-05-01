@@ -13,8 +13,14 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -23,6 +29,8 @@ import java.util.stream.Collectors;
 public class MCPRouter {
     private static final Logger log = LoggerFactory.getLogger(MCPRouter.class);
     private static final String NO_TOOL = "__no_tool__";
+    private static final DateTimeFormatter LOCAL_NEWS_TIME_FORMAT = DateTimeFormatter
+            .ofPattern("MMM d, yyyy h:mm a z", Locale.US);
 
     private final ToolRegistry registry;
     private final LLMService llm;
@@ -84,7 +92,8 @@ public class MCPRouter {
         return """
                 Answer the user in plain language using the available information.
                 Keep it concise. Use at most 5 bullet points.
-                Do not include reasoning, chain-of-thought, XML, URLs, or implementation details.
+                For news answers, include the published date/time and RSS feed shown in each headline line.
+                Do not include reasoning, chain-of-thought, XML, article URLs, or implementation details.
                 Return only the final answer.
 
                 User request:
@@ -113,28 +122,65 @@ public class MCPRouter {
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append("Fetched at: ").append(newsResult.getFetchedAt()).append("\n");
+        sb.append("Fetched at: ").append(localTimestamp(newsResult.getFetchedAt())).append("\n");
         sb.append("Headlines:\n");
 
         newsResult.getArticles().stream()
                 .limit(5)
-                .forEach(article -> appendArticle(sb, article));
+                .forEach(article -> appendArticle(sb, article, newsResult.getFeedUrl(), newsResult.getFetchedAt()));
 
         return sb.toString().trim();
     }
 
-    private void appendArticle(StringBuilder sb, NewsArticle article) {
-        sb.append("- ").append(article.getTitle());
+    private void appendArticle(StringBuilder sb, NewsArticle article, String feedUrl, Object fetchedAt) {
+        sb.append("- [published: ").append(articleTimestamp(article, fetchedAt)).append("] ")
+                .append(article.getTitle());
 
         if (article.getSource() != null && !article.getSource().isBlank()) {
             sb.append(" (").append(article.getSource()).append(")");
         }
 
-        if (article.getPublishedAt() != null && !article.getPublishedAt().isBlank()) {
-            sb.append(" - ").append(article.getPublishedAt());
+        if (feedUrl != null && !feedUrl.isBlank()) {
+            sb.append(" [rss: ").append(feedUrl).append("]");
         }
 
         sb.append("\n");
+    }
+
+    private String articleTimestamp(NewsArticle article, Object fetchedAt) {
+        if (article.getPublishedAt() != null && !article.getPublishedAt().isBlank()) {
+            return localTimestamp(article.getPublishedAt());
+        }
+
+        return localTimestamp(fetchedAt);
+    }
+
+    private String localTimestamp(Object value) {
+        if (value instanceof Instant instant) {
+            return formatLocal(instant);
+        }
+
+        if (value instanceof ZonedDateTime zonedDateTime) {
+            return formatLocal(zonedDateTime.toInstant());
+        }
+
+        if (value instanceof String text && !text.isBlank()) {
+            try {
+                return formatLocal(ZonedDateTime.parse(text, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant());
+            } catch (DateTimeParseException ignored) {
+                try {
+                    return formatLocal(Instant.parse(text));
+                } catch (DateTimeParseException ignoredAgain) {
+                    return text;
+                }
+            }
+        }
+
+        return String.valueOf(value);
+    }
+
+    private String formatLocal(Instant instant) {
+        return LOCAL_NEWS_TIME_FORMAT.format(instant.atZone(ZoneId.systemDefault()));
     }
 
     private String buildToolsList() {
