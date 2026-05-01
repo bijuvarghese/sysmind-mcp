@@ -2,8 +2,9 @@ package com.bxv.sysmindmcp.llm;
 
 import com.bxv.sysmindmcp.config.AppConfig;
 import com.bxv.sysmindmcp.model.ModelListResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,9 +21,9 @@ import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 @Service
+@Slf4j
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 public class LLMService {
-        private static final Logger log = LoggerFactory.getLogger(LLMService.class);
-
         private final WebClient client;
         private final String model;
         private final Duration timeout;
@@ -31,12 +32,6 @@ public class LLMService {
         public LLMService(AppConfig appConfig,
                         @Value("${llm.model:google/gemma-4-e4b}") String model) {
                 this(WebClient.builder().baseUrl(appConfig.getUrl()).build(), model, appConfig.getTimeout());
-        }
-
-        LLMService(WebClient client, String model, Duration timeout) {
-                this.client = client;
-                this.model = model;
-                this.timeout = timeout;
         }
 
         public Mono<String> ask(String prompt, String requestedModel) {

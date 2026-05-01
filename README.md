@@ -15,6 +15,7 @@ Spring Boot 4 backend for SysMind. It receives chat prompts, asks an OpenAI-comp
 Registered system tools:
 
 - `disk_usage`: returns disk free, used, and total values.
+- `latest_news`: fetches current web news headlines from an RSS feed.
 - `ram_usage`: returns memory free, used, and total values.
 
 If no tool applies, or the LLM returns an invalid/unparseable tool decision, the backend asks the LLM directly without injecting tool data.
@@ -26,6 +27,7 @@ If no tool applies, or the LLM returns an invalid/unparseable tool decision, the
 ```env
 LLM_URL=http://localhost:1234
 LLM_TIMEOUT=3m
+NEWS_FEED_URL=https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en
 ```
 
 For Docker from the repository root, use:
@@ -41,6 +43,8 @@ Spring imports optional env files from:
 - repository root `.env`
 
 The `llm.*` settings are bound through `AppConfig` with `@ConfigurationProperties`, so IDE tooling can recognize `llm.url` and `llm.timeout`.
+
+`NEWS_FEED_URL` is required by the news tool and is bound through `news.feed-url`.
 
 ## Development
 
@@ -79,6 +83,7 @@ The root Compose stack builds this service and injects:
 ```env
 LLM_URL
 LLM_TIMEOUT
+NEWS_FEED_URL
 SPRING_PROFILES_ACTIVE
 ```
 

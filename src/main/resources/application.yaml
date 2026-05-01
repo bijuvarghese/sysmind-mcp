@@ -7,3 +7,6 @@ spring:
 llm:
   url: "${LLM_URL}"
   timeout: "${LLM_TIMEOUT}"
+
+news:
+  feed-url: "${NEWS_FEED_URL}"

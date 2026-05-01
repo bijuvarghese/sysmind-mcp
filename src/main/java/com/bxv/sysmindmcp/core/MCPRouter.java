@@ -67,7 +67,7 @@ public class MCPRouter {
     private String formatPrompt(String tool, Object result) {
         log.debug("Formatting tool result. tool={}", tool);
 
-        return "Explain this system data clearly:\n" +
+        return "Explain this tool result clearly:\n" +
                 "Tool: " + tool + "\n" +
                 "Result: " + result;
     }
