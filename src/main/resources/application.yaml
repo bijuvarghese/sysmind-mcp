@@ -7,6 +7,7 @@ spring:
 llm:
   url: "${LLM_URL}"
   timeout: "${LLM_TIMEOUT}"
+  chat-completions-path: "${LLM_CHAT_COMPLETIONS_PATH}"
 
 news:
   feed-url: "${NEWS_FEED_URL}"

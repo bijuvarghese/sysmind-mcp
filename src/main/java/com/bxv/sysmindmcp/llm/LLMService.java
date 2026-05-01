@@ -1,6 +1,7 @@
 package com.bxv.sysmindmcp.llm;
 
 import com.bxv.sysmindmcp.config.AppConfig;
+import com.bxv.sysmindmcp.model.ChatCompletionRequest;
 import com.bxv.sysmindmcp.model.ModelListResponse;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -16,8 +17,6 @@ import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 @Service
@@ -27,11 +26,15 @@ public class LLMService {
         private final WebClient client;
         private final String model;
         private final Duration timeout;
+        private final String chatCompletionsPath;
 
         @Autowired
         public LLMService(AppConfig appConfig,
                         @Value("${llm.model:google/gemma-4-e4b}") String model) {
-                this(WebClient.builder().baseUrl(appConfig.getUrl()).build(), model, appConfig.getTimeout());
+                this(WebClient.builder().baseUrl(appConfig.getUrl()).build(),
+                                model,
+                                appConfig.getTimeout(),
+                                appConfig.getChatCompletionsPath());
         }
 
         public Mono<String> ask(String prompt, String requestedModel) {
@@ -40,11 +43,8 @@ public class LLMService {
                 log.debug("Sending LLM chat completion request. model={}, promptLength={}", targetModel, promptLength);
 
                 return client.post()
-                                .uri("/v1/chat/completions")
-                                .bodyValue(Map.of(
-                                                "model", targetModel,
-                                                "messages", List.of(
-                                                                Map.of("role", "user", "content", prompt))))
+                                .uri(chatCompletionsPath)
+                                .bodyValue(ChatCompletionRequest.userMessage(targetModel, prompt))
                                 .retrieve()
                                 .bodyToMono(String.class)
                                 .timeout(timeout)

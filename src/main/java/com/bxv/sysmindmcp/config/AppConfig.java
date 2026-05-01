@@ -21,4 +21,7 @@ public class AppConfig {
 
     @NotNull
     private Duration timeout;
+
+    @NotBlank
+    private String chatCompletionsPath;
 }
