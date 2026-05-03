@@ -3,6 +3,20 @@ spring:
     import: "optional:file:.env[.properties],optional:file:../.env[.properties]"
   application:
     name: SysMind MCP
+  ai:
+    mcp:
+      server:
+        name: sysmind-mcp
+        version: 1.0.0
+        protocol: STATELESS
+        type: SYNC
+        capabilities:
+          tool: true
+          resource: false
+          prompt: false
+          completion: false
+        streamable-http:
+          mcp-endpoint: /mcp
 
 llm:
   url: "${LLM_URL}"
