@@ -1,33 +1,33 @@
 # sysmind-mcp
 
-Spring Boot 4 backend for SysMind. It receives chat prompts, asks an OpenAI-compatible LLM to choose an applicable system tool, executes that tool when appropriate, and sends the result back through the LLM for a readable response.
+Spring Boot 4 stateless Model Context Protocol server for SysMind.
 
-## Endpoints
+## Endpoint
 
-- `POST /agent`
-  - Body: `{"prompt":"...","model":"optional-model-id"}`
-  - `prompt` is required and validated.
-  - Returns the LLM chat completion response JSON.
-- `GET /v1/models`
-  - Proxies the configured LLM model list.
+- `POST /mcp`
+  - Stateless MCP JSON-RPC endpoint.
+  - Supports `initialize`, `tools/list`, and `tools/call`.
+  - Does not require `Mcp-Session-Id`.
 
 ## Tools
 
-Registered system tools:
+Registered MCP tools:
 
 - `disk_usage`: returns disk free, used, and total values.
 - `latest_news`: fetches current web news headlines from an RSS feed.
 - `ram_usage`: returns memory free, used, and total values.
-
-If no tool applies, or the LLM returns an invalid/unparseable tool decision, the backend asks the LLM directly without injecting tool data.
+- `chroma_status`: checks whether the Chroma vector database is reachable.
 
 ## Configuration
 
-`application.yaml` intentionally does not include default values for LLM connection settings. Provide them through environment variables or an imported `.env` file:
+Spring imports optional env files from:
+
+- `sysmind-mcp/.env`
+- repository root `.env`
+
+Useful values:
 
 ```env
-LLM_URL=http://localhost:1234
-LLM_TIMEOUT=3m
 CHROMA_URL=http://localhost:8000
 CHROMA_TIMEOUT=5s
 CHROMA_TENANT=default_tenant
@@ -38,23 +38,9 @@ NEWS_COUNTRY=US
 NEWS_CEID=
 ```
 
-For Docker from the repository root, use:
-
-```env
-LLM_URL=http://host.docker.internal:1234
-LLM_TIMEOUT=3m
-```
-
-Spring imports optional env files from:
-
-- `sysmind-mcp/.env`
-- repository root `.env`
-
-The `llm.*` settings are bound through `AppConfig` with `@ConfigurationProperties`, so IDE tooling can recognize `llm.url` and `llm.timeout`.
-
 If `NEWS_CEID` is empty, the backend derives it from `NEWS_COUNTRY` and `NEWS_LANGUAGE`, for example `US:en`.
 
-The Chroma settings are bound through `chroma.*`. `chroma_status` checks `/api/v2/healthcheck` and `/api/v2/version` so the agent can confirm the vector database is reachable before retrieval tools run.
+The Chroma settings are bound through `chroma.*`. `chroma_status` checks `/api/v2/healthcheck` and `/api/v2/version`.
 
 ## Development
 
@@ -76,23 +62,11 @@ Build the jar:
 ./mvnw clean package
 ```
 
-## Error Handling
-
-LLM calls use the configured timeout.
-
-- Timeout: `504 Gateway Timeout`
-- Upstream request/status failure: `502 Bad Gateway`
-- Invalid `/agent` request body: `400 Bad Request`
-
-Logs use SLF4J and avoid printing full prompts by default.
-
 ## Docker
 
 The root Compose stack builds this service and injects:
 
 ```env
-LLM_URL
-LLM_TIMEOUT
 NEWS_LANGUAGE
 NEWS_COUNTRY
 NEWS_CEID
