@@ -1,4 +1,4 @@
-package com.bxv.sysmindmcp.llm;
+package com.bxv.sysmindmcp.services;
 
 import com.bxv.sysmindmcp.model.LLMResponse;
 import org.junit.jupiter.api.Test;

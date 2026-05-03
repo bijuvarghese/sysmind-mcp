@@ -28,11 +28,14 @@ If no tool applies, or the LLM returns an invalid/unparseable tool decision, the
 ```env
 LLM_URL=http://localhost:1234
 LLM_TIMEOUT=3m
+CHROMA_URL=http://localhost:8000
+CHROMA_TIMEOUT=5s
+CHROMA_TENANT=default_tenant
+CHROMA_DATABASE=default_database
+CHROMA_COLLECTION=sysmind
 NEWS_LANGUAGE=en-US
 NEWS_COUNTRY=US
 NEWS_CEID=
-NEWS_FEED_URL=https://news.google.com/rss?hl={language}&gl={country}&ceid={ceid}
-NEWS_LOCATION_FEED_URL_TEMPLATE=https://news.google.com/rss/search?q={query}&hl={language}&gl={country}&ceid={ceid}
 ```
 
 For Docker from the repository root, use:
@@ -49,9 +52,9 @@ Spring imports optional env files from:
 
 The `llm.*` settings are bound through `AppConfig` with `@ConfigurationProperties`, so IDE tooling can recognize `llm.url` and `llm.timeout`.
 
-`NEWS_FEED_URL` is bound through `news.feed-url`.
-`NEWS_LOCATION_FEED_URL_TEMPLATE` is used when a prompt names a place. Include `{query}` where the encoded location search should go.
-News URL templates support `{query}`, `{language}`/`{hl}`, `{country}`/`{gl}`, `{languageCode}`, and `{ceid}`. If `NEWS_CEID` is empty, the backend derives it from `NEWS_COUNTRY` and `NEWS_LANGUAGE`, for example `US:en`.
+If `NEWS_CEID` is empty, the backend derives it from `NEWS_COUNTRY` and `NEWS_LANGUAGE`, for example `US:en`.
+
+The Chroma settings are bound through `chroma.*`. `chroma_status` checks `/api/v2/healthcheck` and `/api/v2/version` so the agent can confirm the vector database is reachable before retrieval tools run.
 
 ## Development
 
@@ -90,11 +93,14 @@ The root Compose stack builds this service and injects:
 ```env
 LLM_URL
 LLM_TIMEOUT
-NEWS_FEED_URL
-NEWS_LOCATION_FEED_URL_TEMPLATE
 NEWS_LANGUAGE
 NEWS_COUNTRY
 NEWS_CEID
+CHROMA_URL
+CHROMA_TIMEOUT
+CHROMA_TENANT
+CHROMA_DATABASE
+CHROMA_COLLECTION
 SPRING_PROFILES_ACTIVE
 ```
 

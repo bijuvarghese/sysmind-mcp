@@ -1,6 +1,6 @@
 package com.bxv.sysmindmcp.core;
 
-import com.bxv.sysmindmcp.llm.LLMService;
+import com.bxv.sysmindmcp.services.LLMService;
 import com.bxv.sysmindmcp.model.LLMResponse;
 import com.bxv.sysmindmcp.model.NewsArticle;
 import com.bxv.sysmindmcp.model.NewsResult;
@@ -45,9 +45,15 @@ public class MCPRouter {
                 If no tool applies, return {"tool":"none","arguments":{}}.
                 For latest_news, infer URL arguments from the user request:
                 - query: concise Google News search query, without URL encoding
+                - when:1h → last hour
+                - when:1d → last day
+                - when:7d → last 7 days
+                - when:1m → last month
+                - append this to query in this format for eg: query+when:1d
                 - language: result language/locale like en-US, fr-CA, hi-IN
                 - country: country focus like US, CA, IN
                 - ceid: country and language code like US:en, CA:fr, IN:hi
+
                 %s
                 Return ONLY valid JSON. No explanation. No extra text.
                 Format:
@@ -114,6 +120,10 @@ public class MCPRouter {
 
     private String formatNewsResult(NewsResult newsResult) {
         if (newsResult.getError() != null && !newsResult.getError().isBlank()) {
+            if (newsResult.getFeedUrl() != null && !newsResult.getFeedUrl().isBlank()) {
+                return "News lookup failed for " + newsResult.getFeedUrl() + ": " + newsResult.getError();
+            }
+
             return "News lookup failed: " + newsResult.getError();
         }
 

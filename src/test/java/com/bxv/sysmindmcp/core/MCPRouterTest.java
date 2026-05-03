@@ -1,6 +1,6 @@
 package com.bxv.sysmindmcp.core;
 
-import com.bxv.sysmindmcp.llm.LLMService;
+import com.bxv.sysmindmcp.services.LLMService;
 import com.bxv.sysmindmcp.model.LLMResponse;
 import com.bxv.sysmindmcp.model.NewsArticle;
 import com.bxv.sysmindmcp.model.NewsResult;

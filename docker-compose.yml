@@ -8,4 +8,22 @@ services:
       - NEWS_LANGUAGE=${NEWS_LANGUAGE:-en-US}
       - NEWS_COUNTRY=${NEWS_COUNTRY:-US}
       - NEWS_CEID=${NEWS_CEID:-}
+      - CHROMA_URL=${CHROMA_URL:-http://chroma:8000}
+      - CHROMA_TIMEOUT=${CHROMA_TIMEOUT:-5s}
+      - CHROMA_TENANT=${CHROMA_TENANT:-default_tenant}
+      - CHROMA_DATABASE=${CHROMA_DATABASE:-default_database}
+      - CHROMA_COLLECTION=${CHROMA_COLLECTION:-sysmind}
+    depends_on:
+      - chroma
     restart: unless-stopped
+
+  chroma:
+    image: chromadb/chroma:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma-data:/data
+    restart: unless-stopped
+
+volumes:
+  chroma-data:

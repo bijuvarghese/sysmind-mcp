@@ -10,8 +10,15 @@ llm:
   chat-completions-path: "${LLM_CHAT_COMPLETIONS_PATH}"
 
 news:
-  feed-url: "${NEWS_FEED_URL:https://news.google.com/rss?hl={language}&gl={country}&ceid={ceid}}"
-  location-feed-url-template: "${NEWS_LOCATION_FEED_URL_TEMPLATE:https://news.google.com/rss/search?q={query}&hl={language}&gl={country}&ceid={ceid}}"
+  feed-url: "https://news.google.com/rss?hl={language}&gl={country}&ceid={ceid}"
+  location-feed-url-template: "https://news.google.com/rss/search?q={query}&hl={language}&gl={country}&ceid={ceid}"
   language: "${NEWS_LANGUAGE:en-US}"
   country: "${NEWS_COUNTRY:US}"
   ceid: "${NEWS_CEID:}"
+
+chroma:
+  url: "${CHROMA_URL:http://localhost:8000}"
+  timeout: "${CHROMA_TIMEOUT:5s}"
+  tenant: "${CHROMA_TENANT:default_tenant}"
+  database: "${CHROMA_DATABASE:default_database}"
+  collection: "${CHROMA_COLLECTION:sysmind}"

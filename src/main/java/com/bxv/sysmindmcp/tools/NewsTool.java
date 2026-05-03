@@ -58,6 +58,7 @@ public class NewsTool implements SystemTool {
             @Value("${news.ceid:}") String ceid) {
         this(feedUrl, locationFeedUrlTemplate, language, country, ceid, HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
+                .followRedirects(HttpClient.Redirect.NORMAL)
                 .build());
     }
 
@@ -77,6 +78,7 @@ public class NewsTool implements SystemTool {
             String ceid,
             HttpClient httpClient) {
         this(feedUrlTemplate, locationFeedUrlTemplate, language, country, ceid, uri -> {
+            System.out.println("Fetching news feed from: " + uri);
             HttpRequest request = HttpRequest.newBuilder(uri)
                     .timeout(Duration.ofSeconds(8))
                     .header("User-Agent", "SysMindMCP/1.0")

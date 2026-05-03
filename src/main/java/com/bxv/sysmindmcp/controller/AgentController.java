@@ -1,7 +1,7 @@
 package com.bxv.sysmindmcp.controller;
 
 import com.bxv.sysmindmcp.core.MCPRouter;
-import com.bxv.sysmindmcp.llm.LLMService;
+import com.bxv.sysmindmcp.services.LLMService;
 import com.bxv.sysmindmcp.model.AgentRequest;
 import com.bxv.sysmindmcp.model.LLMResponse;
 import com.bxv.sysmindmcp.model.ModelListResponse;

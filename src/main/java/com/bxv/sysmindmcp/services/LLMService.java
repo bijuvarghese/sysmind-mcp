@@ -1,4 +1,4 @@
-package com.bxv.sysmindmcp.llm;
+package com.bxv.sysmindmcp.services;
 
 import com.bxv.sysmindmcp.config.AppConfig;
 import com.bxv.sysmindmcp.model.ChatCompletionRequest;
@@ -8,6 +8,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -30,9 +31,9 @@ public class LLMService {
         private final String chatCompletionsPath;
 
         @Autowired
-        public LLMService(WebClient llmWebClient,
+        public LLMService(@Qualifier("llmWebClient") WebClient llmWebClient,
                         AppConfig appConfig,
-                        @Value("${llm.model:google/gemma-4-e4b}") String model) {
+                        @Value("${llm.model}") String model) {
                 this(llmWebClient,
                                 model,
                                 appConfig.getTimeout(),
