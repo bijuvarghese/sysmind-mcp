@@ -1,6 +1,7 @@
 package com.bxv.sysmindmcp.tools;
 
 import com.bxv.sysmindmcp.model.DiskStats;
+import com.bxv.sysmindmcp.model.MachineStatus;
 import com.bxv.sysmindmcp.model.NewsResult;
 import com.bxv.sysmindmcp.model.RamStats;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,37 @@ class SystemToolsTest {
         assertThat(stats.getTotal()).isGreaterThanOrEqualTo(0);
         assertThat(stats.getFree()).isGreaterThanOrEqualTo(0);
         assertThat(stats.getUsed()).isEqualTo(stats.getTotal() - stats.getFree());
+    }
+
+    @Test
+    void machineStatusToolReturnsSystemSections() {
+        Object result = new MachineStatusTool().execute();
+
+        assertThat(result).isInstanceOf(MachineStatus.class);
+
+        MachineStatus status = (MachineStatus) result;
+        assertThat(status.getComputerName()).isNotBlank();
+        assertThat(status.getOperatingSystem()).isNotBlank();
+        assertThat(status.getMachineType()).isNotBlank();
+        assertThat(status.getProcessorDetails().getLogicalCpuCores()).isGreaterThan(0);
+        assertThat(status.getProcessorDetails().getPhysicalCpuCores()).isGreaterThan(0);
+        assertThat(status.getMemoryDetails().getTotalBytes()).isGreaterThanOrEqualTo(0);
+        assertThat(status.getMemoryDetails().getUsedBytes())
+                .isEqualTo(status.getMemoryDetails().getTotalBytes() - status.getMemoryDetails().getAvailableBytes());
+        assertThat(status.getMemoryDetails().getStatus()).isNotBlank();
+        assertThat(status.getStorageDetails().getTotalBytes()).isGreaterThan(0);
+        assertThat(status.getStorageDetails().getUsedBytes())
+                .isEqualTo(status.getStorageDetails().getTotalBytes() - status.getStorageDetails().getFreeBytes());
+        assertThat(status.getStorageDetails().getStatus()).isNotBlank();
+        assertThat(status.getSystemStatus().getLastStarted()).isNotBlank();
+        assertThat(status.getSystemStatus().getRunningFor()).isNotBlank();
+        assertThat(status.getSystemStatus().getUptimeSeconds()).isGreaterThanOrEqualTo(0);
+    }
+
+    @Test
+    void machineStatusToolFormatsDurationsLikeSystemReports() {
+        assertThat(MachineStatusTool.formatDuration(java.time.Duration.ofSeconds(225_000)))
+                .isEqualTo("2 days, 14:30:00");
     }
 
     @Test

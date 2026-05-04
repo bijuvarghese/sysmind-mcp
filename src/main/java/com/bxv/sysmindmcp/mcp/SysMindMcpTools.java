@@ -2,6 +2,7 @@ package com.bxv.sysmindmcp.mcp;
 
 import com.bxv.sysmindmcp.tools.ChromaStatusTool;
 import com.bxv.sysmindmcp.tools.DiskTool;
+import com.bxv.sysmindmcp.tools.MachineStatusTool;
 import com.bxv.sysmindmcp.tools.NewsTool;
 import com.bxv.sysmindmcp.tools.RamTool;
 import lombok.AllArgsConstructor;
@@ -20,6 +21,7 @@ public class SysMindMcpTools {
     private final RamTool ramTool;
     private final NewsTool newsTool;
     private final ChromaStatusTool chromaStatusTool;
+    private final MachineStatusTool machineStatusTool;
 
     @McpTool(
             name = "disk_usage",
@@ -86,6 +88,19 @@ public class SysMindMcpTools {
                     openWorldHint = false))
     public Object chromaStatus() {
         return chromaStatusTool.execute();
+    }
+
+    @McpTool(
+            name = "machine_status",
+            description = "Return the host computer name, OS, CPU, RAM, storage, and uptime details.",
+            annotations = @McpTool.McpAnnotations(
+                    title = "Machine Status",
+                    readOnlyHint = true,
+                    destructiveHint = false,
+                    idempotentHint = true,
+                    openWorldHint = false))
+    public Object machineStatus() {
+        return machineStatusTool.execute();
     }
 
     private Map<String, String> arguments(String... pairs) {
