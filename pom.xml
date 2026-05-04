@@ -9,22 +9,28 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.bxv</groupId>
-    <artifactId>SysMindMCP</artifactId>
+    <artifactId>sysmind-mcp</artifactId>
     <version>1.0.0</version>
     <name>SysMind MCP</name>
-    <description>SysMind MCP</description>
-    <url/>
+    <description>Stateless Model Context Protocol server for local system status, news, and Chroma health tools.</description>
+    <url>https://github.com/bijuvarghese/sysmind-mcp</url>
     <licenses>
-        <license/>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/license/mit</url>
+            <distribution>repo</distribution>
+        </license>
     </licenses>
     <developers>
-        <developer/>
+        <developer>
+            <name>Biju Varghese</name>
+        </developer>
     </developers>
     <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
+        <connection>scm:git:https://github.com/bijuvarghese/sysmind-mcp.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/bijuvarghese/sysmind-mcp.git</developerConnection>
+        <tag>HEAD</tag>
+        <url>https://github.com/bijuvarghese/sysmind-mcp</url>
     </scm>
     <properties>
         <java.version>25</java.version>

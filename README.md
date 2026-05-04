@@ -1,6 +1,13 @@
 # sysmind-mcp
 
-Spring Boot 4 stateless Model Context Protocol server for SysMind.
+Stateless Model Context Protocol (MCP) server for SysMind, built with Spring Boot 4.
+
+It exposes read-only tools for local machine status, disk and RAM usage, Google News RSS headlines, and Chroma database health checks.
+
+## Requirements
+
+- Java 25
+- Docker, optional for the Compose workflow
 
 ## Endpoint
 
@@ -77,6 +84,20 @@ Run locally:
 ./mvnw spring-boot:run
 ```
 
+The MCP endpoint is available at:
+
+```text
+http://localhost:8080/mcp
+```
+
+List tools:
+
+```bash
+curl -s http://localhost:8080/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+```
+
 Run tests:
 
 ```bash
@@ -87,6 +108,12 @@ Build the jar:
 
 ```bash
 ./mvnw clean package
+```
+
+Run the packaged jar:
+
+```bash
+java -jar target/sysmind-mcp.jar
 ```
 
 ## Docker
@@ -111,3 +138,13 @@ Use root scripts for day-to-day Docker workflow:
 ../deploy.sh
 ../shutdown.sh
 ```
+
+For this standalone repository, you can also run:
+
+```bash
+docker compose up --build
+```
+
+## License
+
+This project is released under the MIT License. See [LICENSE.md](LICENSE.md).
