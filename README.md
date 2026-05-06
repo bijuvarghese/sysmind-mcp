@@ -4,6 +4,8 @@ Stateless Model Context Protocol (MCP) server for SysMind, built with Spring Boo
 
 It exposes read-only tools for local machine status, disk and RAM usage, Google News RSS headlines, and Chroma database health checks.
 
+In the full SysMind workspace, this backend is called by `sysmind-ui` through Next.js API routes and by `sysmind-agent` through its MCP backend configuration.
+
 ## Requirements
 
 - Java 25
@@ -15,6 +17,8 @@ It exposes read-only tools for local machine status, disk and RAM usage, Google 
   - Stateless MCP JSON-RPC endpoint.
   - Supports `initialize`, `tools/list`, and `tools/call`.
   - Does not require `Mcp-Session-Id`.
+
+Local callers should use `http://localhost:8080/mcp`. In the root Docker stack, nginx proxies the same route at `http://localhost:${NGINX_PORT:-80}/mcp`.
 
 ## Tools
 
@@ -146,6 +150,8 @@ Use root scripts for day-to-day Docker workflow:
 ../deploy.sh
 ../shutdown.sh
 ```
+
+The root Compose stack runs this MCP backend with `sysmind-ui`, Chroma, and nginx. `sysmind-agent` is tracked as a sibling submodule and currently runs locally against this MCP endpoint.
 
 For this standalone repository, you can also run:
 
