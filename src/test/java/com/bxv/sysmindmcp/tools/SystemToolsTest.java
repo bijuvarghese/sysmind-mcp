@@ -50,8 +50,13 @@ class SystemToolsTest {
         assertThat(status.getComputerName()).isNotBlank();
         assertThat(status.getOperatingSystem()).isNotBlank();
         assertThat(status.getMachineType()).isNotBlank();
+        assertThat(status.getProcessorDetails().getTotalCpuCores()).isGreaterThan(0);
+        assertThat(status.getProcessorDetails().getCoreSummary()).isNotBlank();
         assertThat(status.getProcessorDetails().getLogicalCpuCores()).isGreaterThan(0);
         assertThat(status.getProcessorDetails().getPhysicalCpuCores()).isGreaterThan(0);
+        assertThat(status.getProcessorDetails().getPerformanceCpuCores()).isGreaterThanOrEqualTo(0);
+        assertThat(status.getProcessorDetails().getEfficiencyCpuCores()).isGreaterThanOrEqualTo(0);
+        assertThat(status.getProcessorDetails().getPerCoreUsagePercent()).isNotNull();
         assertThat(status.getMemoryDetails().getTotalBytes()).isGreaterThanOrEqualTo(0);
         assertThat(status.getMemoryDetails().getUsedBytes())
                 .isEqualTo(status.getMemoryDetails().getTotalBytes() - status.getMemoryDetails().getAvailableBytes());
@@ -60,6 +65,22 @@ class SystemToolsTest {
         assertThat(status.getStorageDetails().getUsedBytes())
                 .isEqualTo(status.getStorageDetails().getTotalBytes() - status.getStorageDetails().getFreeBytes());
         assertThat(status.getStorageDetails().getStatus()).isNotBlank();
+        assertThat(status.getSystemTemperature().getSource()).isNotBlank();
+        assertThat(status.getSystemTemperature().getStatus()).isNotBlank();
+        assertThat(status.getPowerDetails().getStatus()).isNotBlank();
+        assertThat(status.getProcessDetails().getProcessCount()).isGreaterThanOrEqualTo(0);
+        assertThat(status.getProcessDetails().getTopCpuProcesses()).isNotNull();
+        assertThat(status.getProcessDetails().getTopMemoryProcesses()).isNotNull();
+        assertThat(status.getNetworkDetails().getHostAddresses()).isNotNull();
+        assertThat(status.getNetworkDetails().getInterfaces()).isNotNull();
+        assertThat(status.getThermalDetails().getStatus()).isNotBlank();
+        assertThat(status.getThermalDetails().getSensors()).isNotNull();
+        assertThat(status.getGpuDetails().getStatus()).isNotBlank();
+        assertThat(status.getGpuDetails().getModels()).isNotNull();
+        assertThat(status.getSystemDetails().getLoggedInUser()).isNotBlank();
+        assertThat(status.getSystemDetails().getKernelVersion()).isNotBlank();
+        assertThat(status.getJvmDetails().getProcessId()).isGreaterThan(0);
+        assertThat(status.getJvmDetails().getThreadCount()).isGreaterThan(0);
         assertThat(status.getSystemStatus().getLastStarted()).isNotBlank();
         assertThat(status.getSystemStatus().getRunningFor()).isNotBlank();
         assertThat(status.getSystemStatus().getUptimeSeconds()).isGreaterThanOrEqualTo(0);
@@ -69,6 +90,12 @@ class SystemToolsTest {
     void machineStatusToolFormatsDurationsLikeSystemReports() {
         assertThat(MachineStatusTool.formatDuration(java.time.Duration.ofSeconds(225_000)))
                 .isEqualTo("2 days, 14:30:00");
+    }
+
+    @Test
+    void machineStatusToolFormatsAppleSiliconCoreSummary() {
+        assertThat(MachineStatusTool.formatCoreSummary(14, 10, 4))
+                .isEqualTo("14 (10 Performance and 4 Efficiency)");
     }
 
     @Test
