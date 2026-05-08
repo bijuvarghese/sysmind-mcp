@@ -17,6 +17,8 @@ In the full SysMind workspace, this backend is called by `sysmind-ui` through Ne
   - Stateless MCP JSON-RPC endpoint.
   - Supports `initialize`, `tools/list`, and `tools/call`.
   - Does not require `Mcp-Session-Id`.
+- `GET /actuator/health`
+  - Spring Boot Actuator health endpoint used by Docker health checks.
 
 Local callers should use `http://localhost:8080/mcp`. In the root Docker stack, nginx proxies the same route at `http://localhost:${NGINX_PORT:-80}/mcp`.
 
@@ -86,6 +88,10 @@ The Chroma settings are bound through `chroma.*`. `chroma_status` checks `/api/v
 
 `machine_status` reads host metrics from the JVM and platform utilities when available. Missing platform-specific values are returned as zero, empty lists, null, or `Unknown` rather than failing the whole tool call. On Apple Silicon, `processorDetails.coreSummary` can report values such as `14 (10 Performance and 4 Efficiency)` when `hw.perflevel*` data is available. Some advanced values depend on optional or privileged platform tools such as `smartctl`, `powermetrics`, `istats`, `osx-cpu-temp`, `nvidia-smi`, `lspci`, `iwgetid`, or `curl`.
 
+Platform command execution is isolated in `MachineStatusCommandRunner`, keeping process timeout and output handling separate from the tool's status assembly logic.
+
+`latest_news` uses structured logging for feed fetches so request details flow through the normal Spring logging pipeline.
+
 ## Development
 
 Run locally:
@@ -141,6 +147,14 @@ CHROMA_DATABASE
 CHROMA_COLLECTION
 SPRING_PROFILES_ACTIVE
 ```
+
+The root and standalone Compose files use a pinned Chroma image by default:
+
+```env
+CHROMA_IMAGE=chromadb/chroma:1.5.0
+```
+
+Override `CHROMA_IMAGE` when intentionally testing a newer Chroma image. Compose health checks wait for Chroma before starting the MCP app, and the MCP container exposes `/actuator/health` for service readiness.
 
 Use root scripts for day-to-day Docker workflow:
 

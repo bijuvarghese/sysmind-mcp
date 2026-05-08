@@ -4,6 +4,8 @@ import com.bxv.sysmindmcp.model.NewsArticle;
 import com.bxv.sysmindmcp.model.NewsResult;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -35,6 +37,7 @@ import java.util.regex.Pattern;
 @Component
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class NewsTool implements SystemTool {
+    private static final Logger LOGGER = LoggerFactory.getLogger(NewsTool.class);
     private static final int MAX_ARTICLES = 10;
     private static final Pattern LOCATION_PATTERN = Pattern.compile(
             "\\b(?:in|from|for|near|around)\\s+([\\p{L}][\\p{L}\\p{M} .,'-]{1,80}?)(?=\\s+(?:news|headlines|updates|stories|today|latest|now|right now)\\b|[?.!,]|$)",
@@ -78,7 +81,7 @@ public class NewsTool implements SystemTool {
             String ceid,
             HttpClient httpClient) {
         this(feedUrlTemplate, locationFeedUrlTemplate, language, country, ceid, uri -> {
-            System.out.println("Fetching news feed from: " + uri);
+            LOGGER.info("Fetching news feed uri={}", uri);
             HttpRequest request = HttpRequest.newBuilder(uri)
                     .timeout(Duration.ofSeconds(8))
                     .header("User-Agent", "SysMindMCP/1.0")

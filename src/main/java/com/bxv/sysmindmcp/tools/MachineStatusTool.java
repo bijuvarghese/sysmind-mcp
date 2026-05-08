@@ -1,7 +1,7 @@
 package com.bxv.sysmindmcp.tools;
 
 import com.bxv.sysmindmcp.model.MachineStatus;
-import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -13,7 +13,6 @@ import java.lang.management.ThreadMXBean;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.nio.file.FileStore;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -28,20 +27,28 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 @Component
-@AllArgsConstructor
 public class MachineStatusTool implements SystemTool {
     private static final double BYTES_PER_GB = 1024D * 1024D * 1024D;
     private static final Pattern TEMPERATURE_PATTERN =
             Pattern.compile("(-?\\d+(?:\\.\\d+)?)\\s*(?:°\\s*)?[Cc]\\b");
     private static final DateTimeFormatter DATE_TIME_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
+    private final MachineStatusCommandRunner commandRunner;
+
+    @Autowired
+    public MachineStatusTool(MachineStatusCommandRunner commandRunner) {
+        this.commandRunner = commandRunner;
+    }
+
+    MachineStatusTool() {
+        this(new MachineStatusCommandRunner());
+    }
 
     @Override
     public String name() {
@@ -1690,21 +1697,7 @@ public class MachineStatusTool implements SystemTool {
     }
 
     private Optional<String> runCommand(Duration timeout, String... command) {
-        try {
-            Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
-            boolean finished = process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);
-            if (!finished) {
-                process.destroyForcibly();
-                return Optional.empty();
-            }
-            if (process.exitValue() != 0) {
-                return Optional.empty();
-            }
-            String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
-            return output.isBlank() ? Optional.empty() : Optional.of(output);
-        } catch (Exception e) {
-            return Optional.empty();
-        }
+        return commandRunner.run(timeout, command);
     }
 
     private Optional<Double> parseTemperatureWithUnit(String output) {
