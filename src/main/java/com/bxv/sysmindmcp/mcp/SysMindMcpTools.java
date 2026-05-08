@@ -1,10 +1,8 @@
 package com.bxv.sysmindmcp.mcp;
 
 import com.bxv.sysmindmcp.tools.ChromaStatusTool;
-import com.bxv.sysmindmcp.tools.DiskTool;
 import com.bxv.sysmindmcp.tools.MachineStatusTool;
 import com.bxv.sysmindmcp.tools.NewsTool;
-import com.bxv.sysmindmcp.tools.RamTool;
 import lombok.AllArgsConstructor;
 import org.springframework.ai.mcp.annotation.McpArg;
 import org.springframework.ai.mcp.annotation.McpTool;
@@ -17,37 +15,9 @@ import java.util.Map;
 @Component
 @AllArgsConstructor
 public class SysMindMcpTools {
-    private final DiskTool diskTool;
-    private final RamTool ramTool;
     private final NewsTool newsTool;
     private final ChromaStatusTool chromaStatusTool;
     private final MachineStatusTool machineStatusTool;
-
-    @McpTool(
-            name = "disk_usage",
-            description = "Return the host disk free, used, and total space.",
-            annotations = @McpTool.McpAnnotations(
-                    title = "Disk Usage",
-                    readOnlyHint = true,
-                    destructiveHint = false,
-                    idempotentHint = true,
-                    openWorldHint = false))
-    public Object diskUsage() {
-        return diskTool.execute();
-    }
-
-    @McpTool(
-            name = "ram_usage",
-            description = "Return the host RAM free, used, and total memory.",
-            annotations = @McpTool.McpAnnotations(
-                    title = "RAM Usage",
-                    readOnlyHint = true,
-                    destructiveHint = false,
-                    idempotentHint = true,
-                    openWorldHint = false))
-    public Object ramUsage() {
-        return ramTool.execute();
-    }
 
     @McpTool(
             name = "latest_news",

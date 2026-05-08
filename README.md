@@ -2,7 +2,7 @@
 
 Stateless Model Context Protocol (MCP) server for SysMind, built with Spring Boot 4.
 
-It exposes read-only tools for local machine status, disk and RAM usage, Google News RSS headlines, and Chroma database health checks.
+It exposes read-only tools for local machine status, Google News RSS headlines, and Chroma database health checks.
 
 In the full SysMind workspace, this backend is called by `sysmind-ui` through Next.js API routes and by `sysmind-agent` through its MCP backend configuration.
 
@@ -24,8 +24,6 @@ Local callers should use `http://localhost:8080/mcp`. In the root Docker stack, 
 
 Registered MCP tools:
 
-- `disk_usage`: returns disk free, used, and total values.
-- `ram_usage`: returns memory free, used, and total values.
 - `latest_news`: fetches current web news headlines from an RSS feed.
 - `chroma_status`: checks whether the Chroma vector database is reachable.
 - `machine_status`: returns computer name, OS, CPU, RAM, storage, and uptime details.
