@@ -3,6 +3,7 @@ package com.bxv.sysmindmcp.mcp;
 import com.bxv.sysmindmcp.tools.ChromaStatusTool;
 import com.bxv.sysmindmcp.tools.MachineStatusTool;
 import com.bxv.sysmindmcp.tools.NewsTool;
+import com.bxv.sysmindmcp.tools.ProcessDiagnosticsTool;
 import lombok.AllArgsConstructor;
 import org.springframework.ai.mcp.annotation.McpArg;
 import org.springframework.ai.mcp.annotation.McpTool;
@@ -18,6 +19,7 @@ public class SysMindMcpTools {
     private final NewsTool newsTool;
     private final ChromaStatusTool chromaStatusTool;
     private final MachineStatusTool machineStatusTool;
+    private final ProcessDiagnosticsTool processDiagnosticsTool;
 
     @McpTool(
             name = "latest_news",
@@ -71,6 +73,19 @@ public class SysMindMcpTools {
                     openWorldHint = false))
     public Object machineStatus() {
         return machineStatusTool.execute();
+    }
+
+    @McpTool(
+            name = "process_diagnostics",
+            description = "Return a read-only snapshot of host process diagnostics.",
+            annotations = @McpTool.McpAnnotations(
+                    title = "Process Diagnostics",
+                    readOnlyHint = true,
+                    destructiveHint = false,
+                    idempotentHint = true,
+                    openWorldHint = false))
+    public Object processDiagnostics() {
+        return processDiagnosticsTool.execute();
     }
 
     private Map<String, String> arguments(String... pairs) {
