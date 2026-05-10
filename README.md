@@ -4,7 +4,7 @@ Stateless Model Context Protocol (MCP) server for SysMind, built with Spring Boo
 
 It exposes read-only tools for local machine status, Google News RSS headlines, and Chroma database health checks.
 
-In the full SysMind workspace, this backend is called by `sysmind-ui` through Next.js API routes and by `sysmind-agent` through its MCP backend configuration.
+In the full SysMind workspace, this backend is called by `sysmind-agent` through its MCP backend configuration. The UI and iOS clients talk to the agent, and the agent decides when to call MCP tools.
 
 ## Requirements
 
@@ -163,7 +163,7 @@ Use root scripts for day-to-day Docker workflow:
 ../shutdown.sh
 ```
 
-The root Compose stack runs this MCP backend with `sysmind-ui`, Chroma, and nginx. `sysmind-agent` is tracked as a sibling submodule and currently runs locally against this MCP endpoint.
+The root Compose stack runs this MCP backend with `sysmind-ui`, `sysmind-agent`, Chroma, and nginx.
 
 For this standalone repository, you can also run:
 
